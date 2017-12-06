@@ -31,18 +31,20 @@ import ec.util.MersenneTwisterFast;
 
 /**
  *
- * "MK_7.1" is the seventh iteration of my EngD project model. It is adapted from
- * the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and Andrew Crooks.
- *
- * The model reads a number of GIS shapefiles and displays a road network, two
- * Environment Agency flood maps and a bespoke Open Source Vulnerability Index (OSVI).
- * The model reads in a .CSV and generates a predetermined number of agents with set
- * characteristics. The agents are placed on the road network and are located at
- * a Red Cross office. The model reads a separate .CSV and assigns goal locations to
- * each agent at random from a predetermined list. The agents are assigned speeds at
- * random.
- * Once the model is started, the agents move from A to B, then they change direction
- * and head back to their start position. The process repeats until the user quits.
+ * "MK_7_" is iteration 7.1 of my EngD project model. It varies little from MK_7, 
+ * and just has updated details to include Gloucestershire date. It is adapted 
+ * from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and Andrew 
+ * Crooks.
+ * 
+ * The model reads a number of GIS shapefiles and displays a road network, two 
+ * Environment Agency flood maps and a bespoke Open Source Vulnerability Index 
+ * (OSVI). The model reads in a .CSV and generates a predetermined number of agents 
+ * with set characteristics. The agents are placed on the road network and are 
+ * located at a Red Cross office. The model reads a separate .CSV and assigns goal 
+ * locations to each agent at random from a predetermined list. The agents are 
+ * assigned speeds at random. Once the model is started, the agents move from 
+ * A to B, then they change direction and head back to their start position. 
+ * The process repeats until the user quits.
  *
  * @author KJGarbutt
  *
@@ -60,10 +62,7 @@ public class MK_7_1 extends SimState	{
     public GeomVectorField world = new GeomVectorField();
     public GeomVectorField flood3 = new GeomVectorField();
     public GeomVectorField flood2 = new GeomVectorField();
-    //public GeomVectorField HouseholdsFZ = new GeomVectorField();
-    //public GeomVectorField Households = new GeomVectorField();
     public GeomVectorField agents = new GeomVectorField();
-    //public GeomVectorField ngoagents = new GeomVectorField();
 
     ///////////////////////////// Network ////////////////////////////////////////
     public GeomPlanarGraph network = new GeomPlanarGraph();
@@ -136,7 +135,7 @@ public class MK_7_1 extends SimState	{
         try {
             // read in the roads shapefile to create the transit network
         	URL roadsFile = MK_7_1.class.getResource
-        			("/data/Final_ITN.shp");
+        			("/data/GloucestershireFinal_ITN.shp");
             ShapeFileImporter.read(roadsFile, roads);
             System.out.println("	Roads shapefile: " +roadsFile);
 
@@ -155,7 +154,7 @@ public class MK_7_1 extends SimState	{
 	        //   	}
 
             URL wardsFile = MK_7_1.class.getResource
-                    ("/data/Final_LSOA.shp");
+                    ("/data/GloucestershireFinal_LSOA.shp");
             ShapeFileImporter.read(wardsFile, world, Polygon.class);
             System.out.println("	LSOA shapefile: " +wardsFile);
 
@@ -163,7 +162,7 @@ public class MK_7_1 extends SimState	{
 
             // read in the FZ3 file
             URL flood3File = MK_7_1.class.getResource
-            		("/data/NorfolkFZ3.shp");
+            		("/data/GloucestershireFZ3.shp");
             ShapeFileImporter.read(flood3File, flood3);
             System.out.println("	FZ3 shapefile: " +flood3File);
 
@@ -171,7 +170,7 @@ public class MK_7_1 extends SimState	{
 
             // read in the FZ2 file
             URL flood2File = MK_7_1.class.getResource
-            		("/data/NorfolkFZ2.shp");
+            		("/data/GloucestershireFZ2.shp");
             ShapeFileImporter.read(flood2File, flood2);
             System.out.println("	FZ2 shapefile: " +flood2File);
 
@@ -213,7 +212,7 @@ public class MK_7_1 extends SimState	{
 
             // initialize agents using the following source .CSV files
             agentGoals("/data/AgentGoals.csv");
-            populateAgent("/data/NorfolkITNAGENT.csv");
+            populateAgent("/data/GloucestershireITNAGENT.csv");
 
             System.out.println();
             System.out.println("Starting simulation...");
