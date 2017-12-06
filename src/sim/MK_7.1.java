@@ -31,14 +31,14 @@ import ec.util.MersenneTwisterFast;
 
 /**
  *
- * "MK_7_1" is the seventh iteration of my EngD project model. It is adapted from
+ * "MK_7.1" is the seventh iteration of my EngD project model. It is adapted from
  * the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and Andrew Crooks.
- * 
+ *
  * The model reads a number of GIS shapefiles and displays a road network, two
  * Environment Agency flood maps and a bespoke Open Source Vulnerability Index (OSVI).
  * The model reads in a .CSV and generates a predetermined number of agents with set
  * characteristics. The agents are placed on the road network and are located at
- * a Red Cross office. The model reads a separate .CSV and assigns goal locations to 
+ * a Red Cross office. The model reads a separate .CSV and assigns goal locations to
  * each agent at random from a predetermined list. The agents are assigned speeds at
  * random.
  * Once the model is started, the agents move from A to B, then they change direction
@@ -47,7 +47,7 @@ import ec.util.MersenneTwisterFast;
  * @author KJGarbutt
  *
  */
-public class MK_7_1 extends SimState	{
+public class MK_7.1 extends SimState	{
 
 	//////////////////////////////////////////////////////////////////////////////
 	///////////////////////////// MODEL PARAMETERS ///////////////////////////////
@@ -95,7 +95,7 @@ public class MK_7_1 extends SimState	{
      * //////////////////////// Model Constructor ////////////////////////////////
      * Model Constructor
      */
-    public MK_7_1(long seed)	{
+    public MK_7.1(long seed)	{
         super(seed);
         random = new MersenneTwisterFast(12345);
     }
@@ -135,7 +135,7 @@ public class MK_7_1 extends SimState	{
 
         try {
             // read in the roads shapefile to create the transit network
-        	URL roadsFile = MK_7_1.class.getResource
+        	URL roadsFile = MK_7.1.class.getResource
         			("/data/Final_ITN.shp");
             ShapeFileImporter.read(roadsFile, roads);
             System.out.println("	Roads shapefile: " +roadsFile);
@@ -154,7 +154,7 @@ public class MK_7_1 extends SimState	{
 	        //   catch (FileNotFoundException ex){
 	        //   	}
 
-            URL wardsFile = MK_7_1.class.getResource
+            URL wardsFile = MK_7.1.class.getResource
                     ("/data/Final_LSOA.shp");
             ShapeFileImporter.read(wardsFile, world, Polygon.class);
             System.out.println("	LSOA shapefile: " +wardsFile);
@@ -162,7 +162,7 @@ public class MK_7_1 extends SimState	{
             MBR.expandToInclude(world.getMBR());
 
             // read in the FZ3 file
-            URL flood3File = MK_7_1.class.getResource
+            URL flood3File = MK_7.1.class.getResource
             		("/data/NorfolkFZ3.shp");
             ShapeFileImporter.read(flood3File, flood3);
             System.out.println("	FZ3 shapefile: " +flood3File);
@@ -170,7 +170,7 @@ public class MK_7_1 extends SimState	{
             MBR.expandToInclude(flood3.getMBR());
 
             // read in the FZ2 file
-            URL flood2File = MK_7_1.class.getResource
+            URL flood2File = MK_7.1.class.getResource
             		("/data/NorfolkFZ2.shp");
             ShapeFileImporter.read(flood2File, flood2);
             System.out.println("	FZ2 shapefile: " +flood2File);
@@ -315,8 +315,8 @@ public class MK_7_1 extends SimState	{
 
         addIntersectionNodes(network.nodeIterator(), junctions);
     }
-    
-    
+
+
 	/**
 	* ///////////////////////// Setup agentGoals /////////////////////////////////
 	* Read in the agent goals CSV
@@ -328,7 +328,7 @@ public class MK_7_1 extends SimState	{
 		String csvGoal = null;
 		BufferedReader agentGoalsBuffer = null;
 
-		String agentFilePath = MK_7_1.class.getResource(agentfilename).getPath();
+		String agentFilePath = MK_7.1.class.getResource(agentfilename).getPath();
 		FileInputStream agentfstream = new FileInputStream(agentFilePath);
 		System.out.println("Reading Agent's Goals CSV file: " +agentFilePath);
 
@@ -339,7 +339,7 @@ public class MK_7_1 extends SimState	{
 			while ((csvGoal = agentGoalsBuffer.readLine()) != null) {
 				String[] splitted = csvGoal.split(",");
 
-				ArrayList<String> agentGoalsResult = 
+				ArrayList<String> agentGoalsResult =
 						new ArrayList<String>(splitted.length);
 				for (String data : splitted)
 					agentGoalsResult.add(data);
@@ -361,7 +361,7 @@ public class MK_7_1 extends SimState	{
      */
     public void populateAgent(String filename)	{
         try	{
-            String filePath = MK_7_1.class.getResource(filename).getPath();
+            String filePath = MK_7.1.class.getResource(filename).getPath();
             FileInputStream fstream = new FileInputStream(filePath);
             System.out.println();
             System.out.println("Populating model with Agents: " +filePath);
@@ -403,7 +403,7 @@ public class MK_7_1 extends SimState	{
                 	//pop; i++)	{ 	// NO IDEA IF THIS MAKES A DIFFERENCE!?!
                     agents.MainAgent a = new agents.MainAgent
                     		(this, homeTract, startingEdge, goalEdge);
-                    
+
                     boolean successfulStart = a.start(this);
                     //System.out.println("Starting...");
 
@@ -461,7 +461,7 @@ public class MK_7_1 extends SimState	{
      * Main function allows simulation to be run in stand-alone, non-GUI mode
      */
     public static void main(String[] args)	{
-        doLoop(MK_7_1.class, args);
+        doLoop(MK_7.1.class, args);
         System.exit(0);
     }
 }

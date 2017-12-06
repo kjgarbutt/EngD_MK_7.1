@@ -20,14 +20,14 @@ import sim.util.media.chart.TimeSeriesChartGenerator;
 import agents.MainAgent;
 
 /**
- * "MK_7_1" is the seventh iteration of my EngD project model. It is adapted from
+ * "MK_7.1" is the seventh iteration of my EngD project model. It is adapted from
  * the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and Andrew Crooks.
- * 
+ *
  * The model reads a number of GIS shapefiles and displays a road network, two
  * Environment Agency flood maps and a bespoke Open Source Vulnerability Index (OSVI).
  * The model reads in a .CSV and generates a predetermined number of agents with set
  * characteristics. The agents are placed on the road network and are located at
- * a Red Cross office. The model reads a separate .CSV and assigns goal locations to 
+ * a Red Cross office. The model reads a separate .CSV and assigns goal locations to
  * each agent at random from a predetermined list. The agents are assigned speeds at
  * random.
  * Once the model is started, the agents move from A to B, then they change direction
@@ -36,7 +36,7 @@ import agents.MainAgent;
  * @author KJGarbutt
  *
  */
-public class MK_7_1WithUI extends GUIState	{
+public class MK_7.1WithUI extends GUIState	{
 
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// DISPLAY FUNCTIONS ////////////////////////////////
@@ -65,7 +65,7 @@ public class MK_7_1WithUI extends GUIState	{
      * ///////////////////////// Default constructor /////////////////////////////
      * Default constructor
      */
-    protected MK_7_1WithUI(SimState state)	{
+    protected MK_7.1WithUI(SimState state)	{
             super(state);
         }
 
@@ -74,7 +74,7 @@ public class MK_7_1WithUI extends GUIState	{
      * Sets up the portrayals and charts for the simulation
      */
     private void setupPortrayals()	{
-    	sim.MK_7_1 world = (sim.MK_7_1) state;
+    	sim.MK_7.1 world = (sim.MK_7.1) state;
 
         // the polygon portrayal
         polyPortrayal.setField(world.world);
@@ -92,8 +92,8 @@ public class MK_7_1WithUI extends GUIState	{
          * @param args
          */
         public static void main(String[] args)	{
-        	MK_7_1WithUI simple = new MK_7_1WithUI(
-        			new sim.MK_7_1(System.currentTimeMillis()));
+        	MK_7.1WithUI simple = new MK_7.1WithUI(
+        			new sim.MK_7.1(System.currentTimeMillis()));
             Console c = new Console(simple);
             c.setVisible(true);
         }
@@ -125,7 +125,7 @@ public class MK_7_1WithUI extends GUIState	{
 
             setupPortrayals();
 
-            sim.MK_7_1 world = (sim.MK_7_1) state;
+            sim.MK_7.1 world = (sim.MK_7.1) state;
 
             maxSpeed = new XYSeries("Max Speed");
             avgSpeed = new XYSeries("Average Speed");
@@ -139,7 +139,7 @@ public class MK_7_1WithUI extends GUIState	{
 				private static final long serialVersionUID = -3749005402522867098L;
 
 				public void step(SimState state)	{
-                	sim.MK_7_1 world = (sim.MK_7_1) state;
+                	sim.MK_7.1 world = (sim.MK_7.1) state;
                     double maxS = 0, minS = 10000, avgS = 0, count = 0;
                     //////////////////////////// Main Agent //////////////////////
                     for (MainAgent a : world.agentList)	{
