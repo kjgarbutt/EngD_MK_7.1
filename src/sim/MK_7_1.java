@@ -211,7 +211,7 @@ public class MK_7_1 extends SimState	{
             //////////////////////////////////////////////////////////////////////
 
             // initialize agents using the following source .CSV files
-            agentGoals("/data/AgentGoals.csv");
+            agentGoals("/data/GloucestershireAgentGoals.csv");
             populateAgent("/data/GloucestershireITNAGENT.csv");
 
             System.out.println();
