@@ -36,7 +36,7 @@ import agents.MainAgent;
  * @author KJGarbutt
  *
  */
-public class MK_7.1WithUI extends GUIState	{
+public class MK_7_1WithUI extends GUIState	{
 
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// DISPLAY FUNCTIONS ////////////////////////////////
@@ -65,7 +65,7 @@ public class MK_7.1WithUI extends GUIState	{
      * ///////////////////////// Default constructor /////////////////////////////
      * Default constructor
      */
-    protected MK_7.1WithUI(SimState state)	{
+    protected MK_7_1WithUI(SimState state)	{
             super(state);
         }
 
@@ -74,7 +74,7 @@ public class MK_7.1WithUI extends GUIState	{
      * Sets up the portrayals and charts for the simulation
      */
     private void setupPortrayals()	{
-    	sim.MK_7.1 world = (sim.MK_7.1) state;
+    	sim.MK_7_1 world = (sim.MK_7_1) state;
 
         // the polygon portrayal
         polyPortrayal.setField(world.world);
@@ -92,8 +92,8 @@ public class MK_7.1WithUI extends GUIState	{
          * @param args
          */
         public static void main(String[] args)	{
-        	MK_7.1WithUI simple = new MK_7.1WithUI(
-        			new sim.MK_7.1(System.currentTimeMillis()));
+        	MK_7_1WithUI simple = new MK_7_1WithUI(
+        			new sim.MK_7_1(System.currentTimeMillis()));
             Console c = new Console(simple);
             c.setVisible(true);
         }
@@ -125,7 +125,7 @@ public class MK_7.1WithUI extends GUIState	{
 
             setupPortrayals();
 
-            sim.MK_7.1 world = (sim.MK_7.1) state;
+            sim.MK_7_1 world = (sim.MK_7_1) state;
 
             maxSpeed = new XYSeries("Max Speed");
             avgSpeed = new XYSeries("Average Speed");
@@ -139,7 +139,7 @@ public class MK_7.1WithUI extends GUIState	{
 				private static final long serialVersionUID = -3749005402522867098L;
 
 				public void step(SimState state)	{
-                	sim.MK_7.1 world = (sim.MK_7.1) state;
+                	sim.MK_7_1 world = (sim.MK_7_1) state;
                     double maxS = 0, minS = 10000, avgS = 0, count = 0;
                     //////////////////////////// Main Agent //////////////////////
                     for (MainAgent a : world.agentList)	{
