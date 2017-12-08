@@ -206,22 +206,22 @@ public class MK_7_1WithUI extends GUIState	{
             {
                 Polygon poly = (Polygon) object;
 
-                if (poly.getSoc().equals("red"))
+                if (poly.getSoc().equals("Red"))
                 {
                     paint = Color.red;
                 }
 
-                else if (poly.getSoc().equals("orange"))
+                else if (poly.getSoc().equals("Orange"))
                 {
                     paint = Color.orange;
                 }
 
-                else if (poly.getSoc().equals("yellow"))
+                else if (poly.getSoc().equals("Yellow"))
                 {
                     paint = Color.yellow;
                 }
 
-                else if (poly.getSoc().equals("green"))
+                else if (poly.getSoc().equals("Green"))
                 {
                     paint = Color.green;
                 }

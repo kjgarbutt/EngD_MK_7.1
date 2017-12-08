@@ -135,7 +135,7 @@ public class MK_7_1 extends SimState	{
         try {
             // read in the roads shapefile to create the transit network
         	URL roadsFile = MK_7_1.class.getResource
-        			("/data/GloucestershireFinal_ITN_QGIS_1.shp");
+        			("/data/GL_ITN.shp");
             ShapeFileImporter.read(roadsFile, roads);
             System.out.println("	Roads shapefile: " +roadsFile);
 
@@ -162,7 +162,7 @@ public class MK_7_1 extends SimState	{
 
             // read in the FZ3 file
             URL flood3File = MK_7_1.class.getResource
-            		("/data/GloucestershireFZ3.shp");
+            		("/data/Gloucestershire_FZ_3.shp");
             ShapeFileImporter.read(flood3File, flood3);
             System.out.println("	FZ3 shapefile: " +flood3File);
 
@@ -170,7 +170,7 @@ public class MK_7_1 extends SimState	{
 
             // read in the FZ2 file
             URL flood2File = MK_7_1.class.getResource
-            		("/data/GloucestershireFZ2.shp");
+            		("/data/Gloucestershire_FZ_2.shp");
             ShapeFileImporter.read(flood2File, flood2);
             System.out.println("	FZ2 shapefile: " +flood2File);
 
@@ -307,7 +307,7 @@ public class MK_7_1 extends SimState	{
         for (Object o : network.getEdges())	{
             GeomPlanarGraphEdge e = (GeomPlanarGraphEdge) o;
 
-            idsToEdges.put(e.getIntegerAttribute("ROAD_ID").intValue(), e);
+            idsToEdges.put(e.getIntegerAttribute("ROAD_ID_1").intValue(), e);
 
             e.setData(new ArrayList<agents.MainAgent>());
         }
