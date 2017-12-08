@@ -27,6 +27,7 @@ public class Polygon extends MasonGeometry	{
 
     public void init()	{
         soc = getStringAttribute("RankColN");
+        //soc = getIntegerAttribute("RankColN");
     }
 
     String getSoc()	{
