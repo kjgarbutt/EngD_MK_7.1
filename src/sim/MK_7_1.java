@@ -81,9 +81,9 @@ public class MK_7_1 extends SimState	{
     ArrayList<String> csvData = new ArrayList<String>();
 
     // Here we force the agents to go to or from work at any time
-    public boolean goToWork = true;
-    public boolean getGoToWork()	{
-        return goToWork;
+    public boolean goToLSOA = true;
+    public boolean getGoToLSOA()	{
+        return goToLSOA;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -135,7 +135,7 @@ public class MK_7_1 extends SimState	{
         try {
             // read in the roads shapefile to create the transit network
         	URL roadsFile = MK_7_1.class.getResource
-        			("/data/GloucestershireFinal_ITN.shp");
+        			("/data/GloucestershireFinal_ITN_QGIS_1.shp");
             ShapeFileImporter.read(roadsFile, roads);
             System.out.println("	Roads shapefile: " +roadsFile);
 
@@ -154,7 +154,7 @@ public class MK_7_1 extends SimState	{
 	        //   	}
 
             URL wardsFile = MK_7_1.class.getResource
-                    ("/data/GloucestershireFinal_LSOA.shp");
+            		("/data/GloucestershireFinal_LSOA_QGIS.shp");
             ShapeFileImporter.read(wardsFile, world, Polygon.class);
             System.out.println("	LSOA shapefile: " +wardsFile);
 
@@ -254,8 +254,8 @@ public class MK_7_1 extends SimState	{
                       //  }
                     //}
                     // send everyone back in the opposite direction now
-                    //boolean toWork = gstate.goToWork;
-                   // gstate.goToWork = !toWork;
+                    //boolean toLSOA = gstate.goToLSOA;
+                   // gstate.goToLSOA = !toLSOA;
 
                     // otherwise everyone has reached their latest destination:
                     // turn them back

@@ -52,8 +52,8 @@ public final class MainAgent implements Steppable	{
 
     String homeTract = "";
     String goalTract = "";
-    Node homeNode = null;
-    Node workNode = null;
+    Node headquartersNode = null;
+    Node lsoaNode = null;
     // point that denotes agent's position
     // private Point location;
     private MasonGeometry location; // point that denotes agent's position
@@ -70,7 +70,7 @@ public final class MainAgent implements Steppable	{
     private Color headingToGoal = Color.red;
     int linkDirection = 1;
     public double speed = 0; // useful for graph
-    ArrayList<GeomPlanarGraphDirectedEdge> pathFromHomeToWork =
+    ArrayList<GeomPlanarGraphDirectedEdge> pathFromHQToLSOA =
         new ArrayList<GeomPlanarGraphDirectedEdge>();
     int indexOnPath = 0;
     int pathDirection = 1;
@@ -85,8 +85,8 @@ public final class MainAgent implements Steppable	{
 	 * Default Wrapper Constructor: provides the default parameters
 	 *
 	 * //@param location - Coordinate indicating the initial position of the Agent
-	 * //@param homeNode - Coordinate indicating the Agent's home location
-	 * //@param workNode - Coordinate indicating the Agent's workplace
+	 * //@param headquartersNode - Coordinate indicating the Agent's home location
+	 * //@param lsaoNode - Coordinate indicating the Agent's LSOA destination
 	 * //@param world - reference to the containing GloucestershireRouting instance
 	 */
     public MainAgent(MK_7_1 g, String homeTract, GeomPlanarGraphEdge startingEdge,
@@ -94,8 +94,8 @@ public final class MainAgent implements Steppable	{
 	   world = g;
 
 	   // set up information about where the node is and where it's going
-	   homeNode = startingEdge.getDirEdge(0).getFromNode();
-	   workNode = goalEdge.getDirEdge(0).getToNode();
+	   headquartersNode = startingEdge.getDirEdge(0).getFromNode();
+	   lsoaNode = goalEdge.getDirEdge(0).getToNode();
 	   this.homeTract = homeTract;
 	   this.goalTract = goalTract;
 
@@ -127,7 +127,7 @@ public final class MainAgent implements Steppable	{
        location.addDoubleAttribute("MOVE RATE", moveRate);
 
 	   Coordinate startCoord = null;
-	   startCoord = homeNode.getCoordinate();
+	   startCoord = headquartersNode.getCoordinate();
 	   updatePosition(startCoord);
     }
 
@@ -170,14 +170,14 @@ public final class MainAgent implements Steppable	{
 
 	/**
 	* ////////////////////////// A* Route Initialisation /////////////////////////
-	* Initialization of an Agent: find an A* path to work!
+	* Initialization of an Agent: find an A* path from HQ to LSOA!
 	*
 	* @param state
 	* @return whether or not the agent successfully found a path to work
 	*/
    public boolean start(MK_7_1 state)	{
        findNewAStarPath(state);
-       if (pathFromHomeToWork.isEmpty())	{
+       if (pathFromHQToLSOA.isEmpty())	{
            System.out.println("Initialization of a Agent (" +homeTract
            		+ ") failed: it is located in a part of the network that cannot "
            		+ "access the given goal.");
@@ -196,7 +196,7 @@ public final class MainAgent implements Steppable	{
        // get the home and work Nodes with which this Agent is associated
        Node currentJunction = geoTest.network.findNode
     		   (location.geometry.getCoordinate());
-       Node destinationJunction = workNode;
+       Node destinationJunction = lsoaNode;
 
        if (currentJunction == null)	{
            return; // just a check
@@ -210,7 +210,7 @@ public final class MainAgent implements Steppable	{
        if (path != null && path.size() > 0)	{
 
            // save it
-           pathFromHomeToWork = path;
+           pathFromHQToLSOA = path;
 
            // set up how to traverse this first link
            GeomPlanarGraphEdge edge =
@@ -247,8 +247,8 @@ public final class MainAgent implements Steppable	{
        }
 
        // make sure that we're heading in the right direction
-       //boolean toWork = ((MK_7) state).goToWork;
-       // if ((toWork && pathDirection < 0) || (!toWork && pathDirection > 0))	{
+       //boolean toLSOA = ((MK_7) state).goToLSOA;
+       // if ((toLSOA && pathDirection < 0) || (!toLSOA && pathDirection > 0))	{
        //     flipPath();
        // }
 
@@ -297,7 +297,7 @@ public final class MainAgent implements Steppable	{
 
        // check to make sure the Agent has not reached the end
        // of the path already
-       if ((pathDirection > 0 && indexOnPath >= pathFromHomeToWork.size())
+       if ((pathDirection > 0 && indexOnPath >= pathFromHQToLSOA.size())
                || (pathDirection < 0 && indexOnPath < 0))
     	   		// depends on where you're going!
        {
@@ -309,7 +309,7 @@ public final class MainAgent implements Steppable	{
 
        // move to the next edge in the path
        GeomPlanarGraphEdge edge = (GeomPlanarGraphEdge)
-    		   pathFromHomeToWork.get(indexOnPath).getEdge();
+    		   pathFromHQToLSOA.get(indexOnPath).getEdge();
        setupEdge(edge);
        speed = progress(residualMove);
        currentIndex += speed;
