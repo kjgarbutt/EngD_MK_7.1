@@ -86,6 +86,14 @@ public class MK_7_1 extends SimState	{
         return goToLSOA;
     }
 
+    // Need to actually utilise this somewhere±
+    public static double temporalResolution_minutesPerTick = 1;//5; // minutes per tick
+    public double param_defaultSpeed = 200 * MK_7_1.temporalResolution_minutesPerTick;
+	public double param_topSpeed = 1000 * MK_7_1.temporalResolution_minutesPerTick;
+	public int param_reportTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
+	public int param_responseCarTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
+    
+    
     //////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// BEGIN FUNCTIONS //////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -122,15 +130,6 @@ public class MK_7_1 extends SimState	{
 		//////////////////////////////////////////////////////////////////////////
         /////////////////////////// READ IN DATA /////////////////////////////////
 		//////////////////////////////////////////////////////////////////////////
-
-        /*
-        src/
-        	data/
-            	.shp, .dbf, .csv ...
-        sim/
-        	MK_7/
-        		.java files
-         */
 
         try {
             // read in the roads shapefile to create the transit network
@@ -176,25 +175,6 @@ public class MK_7_1 extends SimState	{
 
             MBR.expandToInclude(flood2.getMBR());
 
-            /*
-            // read in the household files
-            URL HouseholdsFZFile = MK_2.class.getResource
-            		("/data/Buildings_IN_FZ_Snapped_to_ITN.shp");
-            ShapeFileImporter.read(HouseholdsFZFile, HouseholdsFZ);
-            System.out.println("Households in FZ shapefile: " +HouseholdsFZFile);
-
-            MBR.expandToInclude(HouseholdsFZ.getMBR());
-
-            // read in the FZ2 file
-            URL HouseholdsFile = MK_2.class.getResource
-            		("/data/Buildings_NOT_in_FZ_Snapped_to_ITN.shp");
-            ShapeFileImporter.read(HouseholdsFile, Households);
-            System.out.println("Households not in FZ shapefile: " +HouseholdsFile);
-            System.out.println();
-
-            MBR.expandToInclude(Households.getMBR());
-            */
-
             createNetwork();
             setup();
 
@@ -204,7 +184,6 @@ public class MK_7_1 extends SimState	{
 
             // clear any existing agents from previous runs
             agents.clear();
-            //ngoagents.clear();
 
             //////////////////////////////////////////////////////////////////////
             /////////////////////////// AGENTS ///////////////////////////////////
@@ -223,10 +202,7 @@ public class MK_7_1 extends SimState	{
             world.setMBR(MBR);
             flood3.setMBR(MBR);
             flood2.setMBR(MBR);
-            //HouseholdsFZ.setMBR(MBR);
-            //Households.setMBR(MBR);
             agents.setMBR(MBR);
-            //ngoagents.setMBR(MBR);
 
             // Ensure that the spatial index is updated after all the agents move
             schedule.scheduleRepeating( agents.scheduleSpatialIndexUpdater(),
@@ -284,15 +260,6 @@ public class MK_7_1 extends SimState	{
     	super.finish();
     	System.out.println();
     	System.out.println("Simulation ended by user.");
-        /*
-    	System.out.println("Attempting to export agent data...");
-        try	{
-        	ShapeFileExporter.write("agents", agents);
-        } catch (Exception e)	{
-        	System.out.println("Export failed.");
-        	e.printStackTrace();
-        }
-        */
     }
 
     /**

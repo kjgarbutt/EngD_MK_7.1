@@ -22,9 +22,9 @@ import agents.MainAgent;
 /**
 *
 * "MK_7_" is iteration 7.1 of my EngD project model. It varies little from MK_7, 
-* and just has updated details to include Gloucestershire date. It is adapted 
-* from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and Andrew 
-* Crooks.
+* and just has updated details to include Gloucestershire date. It was originally
+* adapted from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and 
+* Andrew Crooks.
 * 
 * The model reads a number of GIS shapefiles and displays a road network, two 
 * Environment Agency flood maps and a bespoke Open Source Vulnerability Index 
@@ -246,7 +246,7 @@ public class MK_7_1WithUI extends GUIState	{
 
             /////////////////////////// MAIN DISPLAY /////////////////////////////
             // makes the displayer and visualises the maps
-            display = new Display2D(1200, 600, this);
+            display = new Display2D(800, 600, this);
             // turn off clipping
             // display.setClipping(false);
 

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 import network.AStar;
 import sim.MK_7_1;
+import sim.Status;
 import sim.engine.SimState;
 import sim.engine.Steppable;
 import sim.portrayal.DrawInfo2D;
@@ -23,9 +24,9 @@ import com.vividsolutions.jts.planargraph.Node;
 /**
 *
 * "MK_7_" is iteration 7.1 of my EngD project model. It varies little from MK_7, 
-* and just has updated details to include Gloucestershire date. It is adapted 
-* from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and Andrew 
-* Crooks.
+* and just has updated details to include Gloucestershire date. It was originally
+* adapted from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and 
+* Andrew Crooks.
 * 
 * The model reads a number of GIS shapefiles and displays a road network, two 
 * Environment Agency flood maps and a bespoke Open Source Vulnerability Index 
@@ -48,13 +49,22 @@ public final class MainAgent implements Steppable	{
     //////////////////////////////////////////////////////////////////////////////
 
     MK_7_1 world;
-    // Residence/Work Attributes
-
+    // Residence/Goal/Status Attributes
+    public Status status = Status.REPLENISHING;
+    public int timeSinceDeparted = 0;
+    public boolean homebound = false;
+    public boolean reachedGoal = false;
+    public static final int waiting_Period = 360;
+    public int resources_Available = 0;
+    public int resources_Distributed = 0;
+    public int resources_Capacity = 0;
+    public boolean getReachedGoal() { return hasResources; }
+    public void setReachedGoal(boolean val) { hasResources = val; }
+    public boolean hasResources = false;
     String homeTract = "";
     String goalTract = "";
     Node headquartersNode = null;
     Node lsoaNode = null;
-    // point that denotes agent's position
     // private Point location;
     private MasonGeometry location; // point that denotes agent's position
     // How much to move the agent by in each step()
@@ -66,15 +76,14 @@ public final class MainAgent implements Steppable	{
     double endIndex = 0.0; // end position of current line
     double currentIndex = 0.0; // current location along line
     GeomPlanarGraphEdge currentEdge = null;
-    private Color headingToHQ = Color.black;
-    private Color headingToGoal = Color.red;
+    private Color inboundColor = Color.black;
+    private Color outboundColor = Color.red;
     int linkDirection = 1;
     public double speed = 0; // useful for graph
     ArrayList<GeomPlanarGraphDirectedEdge> pathFromHQToLSOA =
         new ArrayList<GeomPlanarGraphDirectedEdge>();
     int indexOnPath = 0;
     int pathDirection = 1;
-    public boolean reachedGoal = false;
     PointMoveTo pointMoveTo = new PointMoveTo();
 
     static private GeometryFactory fact = new GeometryFactory();
@@ -120,7 +129,7 @@ public final class MainAgent implements Steppable	{
 
 	   // Not everyone moves at the same speed
        // Assigns random speed
-	   //moveRate *= Math.abs(g.random.nextGaussian());
+	   // moveRate *= Math.abs(g.random.nextGaussian());
        // Assigns random speed between 0-70
 	   moveRate = (int)(Math.random()*70) + 1;
        System. out.println("Agent's MoveRate = " + moveRate );
@@ -151,12 +160,12 @@ public final class MainAgent implements Steppable	{
 	*/
 
     public final void draw(Object object, Graphics2D graphics, DrawInfo2D info)	{
- 	   if( reachedGoal )
- 	       graphics.setColor( headingToGoal );
+ 	   if( hasResources )
+ 	       graphics.setColor( outboundColor );
  	   else
- 	       graphics.setColor( headingToHQ );
+ 	       graphics.setColor( inboundColor );
 
- 	   // this code was stolen from OvalPortrayal2D
+ 	   // this code was copied from OvalPortrayal2D
  	   int x = (int)(info.draw.x - info.draw.width / 20.0);
  	   int y = (int)(info.draw.y - info.draw.height / 20.0);
  	   int width = (int)(info.draw.width);
@@ -242,7 +251,8 @@ public final class MainAgent implements Steppable	{
            return;
        } // check that we haven't already reached our destination
        else if (reachedGoal)	{
-           System.out.println(this + " has reached its HOME");
+    	   status = Status.DISTRIBUTING;
+           System.out.println(this + " has reached its GOAL");
            flipPath();
        }
 
@@ -280,6 +290,10 @@ public final class MainAgent implements Steppable	{
     */
    public void flipPath()	{
        reachedGoal = false;
+       homebound = false;
+       status = Status.OUTBOUND;
+       System.out.println(this + " is OUTBOUND");
+       this.timeSinceDeparted = 0;
        pathDirection = -pathDirection;
        linkDirection = -linkDirection;
    }
@@ -301,8 +315,10 @@ public final class MainAgent implements Steppable	{
                || (pathDirection < 0 && indexOnPath < 0))
     	   		// depends on where you're going!
        {
-    	   System.out.println(this + " has reached its DESTINATION");
+    	   status = Status.INBOUND;
            reachedGoal = true;
+           homebound = true;
+           System.out.println(this + " is heading back to HQ");
            indexOnPath -= pathDirection; // make sure index is correct
            return;
        }
@@ -372,6 +388,7 @@ public final class MainAgent implements Steppable	{
 
        world.agents.setGeometryLocation(location, pointMoveTo);
    }
+   
 
    /**
     * ////////////////////////// Agent's Location ////////////////////////////////
