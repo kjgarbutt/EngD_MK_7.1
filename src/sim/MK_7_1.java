@@ -10,7 +10,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
+
+import agents.MainAgent;
+
 import com.linuxense.javadbf.*;
+
 import java.io.*;
 
 import sim.engine.SimState;
@@ -86,12 +90,12 @@ public class MK_7_1 extends SimState	{
         return goToLSOA;
     }
 
-    // Need to actually utilise this somewhere±
-    public static double temporalResolution_minutesPerTick = 1;//5; // minutes per tick
-    public double param_defaultSpeed = 200 * MK_7_1.temporalResolution_minutesPerTick;
-	public double param_topSpeed = 1000 * MK_7_1.temporalResolution_minutesPerTick;
-	public int param_reportTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
-	public int param_responseCarTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
+    // Need to actually utilise this somewhere
+    //public static double temporalResolution_minutesPerTick = 1;//5; // minutes per tick
+    //public double param_defaultSpeed = 200 * MK_7_1.temporalResolution_minutesPerTick;
+	//public double param_topSpeed = 1000 * MK_7_1.temporalResolution_minutesPerTick;
+	//public int param_reportTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
+	//public int param_responseCarTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
     
     
     //////////////////////////////////////////////////////////////////////////////
@@ -155,7 +159,7 @@ public class MK_7_1 extends SimState	{
             URL wardsFile = MK_7_1.class.getResource
             		("/data/GloucestershireFinal_LSOA_QGIS.shp");
             ShapeFileImporter.read(wardsFile, world, Polygon.class);
-            System.out.println("	LSOA shapefile: " +wardsFile);
+            System.out.println("	OSVI shapefile: " +wardsFile);
 
             MBR.expandToInclude(world.getMBR());
 
@@ -207,8 +211,6 @@ public class MK_7_1 extends SimState	{
             // Ensure that the spatial index is updated after all the agents move
             schedule.scheduleRepeating( agents.scheduleSpatialIndexUpdater(),
             		Integer.MAX_VALUE, 1.0);
-            //schedule.scheduleRepeating( ngoagents.scheduleSpatialIndexUpdater(),
-            //		Integer.MAX_VALUE, 1.0);
 
 
             /** Steppable that flips Agent paths once everyone reaches
@@ -311,6 +313,7 @@ public class MK_7_1 extends SimState	{
 					agentGoalsResult.add(data);
 				csvData.addAll(agentGoalsResult);
 			}
+			System.out.println();
 			System.out.println("Full csvData Array: " +csvData);
 
 		} finally {
@@ -374,8 +377,10 @@ public class MK_7_1 extends SimState	{
                     //System.out.println("Starting...");
 
                     if (!successfulStart)	{
-                    	System.out.println("Main agents added successfully!!");
+                    	System.out.println("ERROR: Main agents *NOT* added properly!");
                     	continue; // DON'T ADD IT if it's bad
+                    } else {
+                    	//System.out.println("Agent added successfully!");
                     }
 
                     //MasonGeometry newGeometry = new MasonGeometry(a.getGeometry());
@@ -388,7 +393,7 @@ public class MK_7_1 extends SimState	{
             }
 
             d.close();
-
+            System.out.println("Agents added successfully!");
         } catch (Exception e) {
 		    	System.out.println("ERROR: issue with population file: ");
 				e.printStackTrace();

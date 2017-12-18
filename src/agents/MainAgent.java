@@ -54,7 +54,8 @@ public final class MainAgent implements Steppable	{
     public int timeSinceDeparted = 0;
     public boolean homebound = false;
     public boolean reachedGoal = false;
-    public static final int waiting_Period = 360;
+    public static final int waiting_Period = 100;
+    public int waiting = waiting_Period;
     public int resources_Available = 0;
     public int resources_Distributed = 0;
     public int resources_Capacity = 0;
@@ -118,13 +119,15 @@ public final class MainAgent implements Steppable	{
 	   // Now set up attributes for this agent
 	   if (g.random.nextBoolean())	{
            location.addStringAttribute("TYPE", "4x4");
-           int age = (int) (20.0 + 2.0 * g.random.nextGaussian());
-           location.addIntegerAttribute("AGE", age);
+           int range = (int) (40.0 * g.random.nextGaussian());
+           location.addIntegerAttribute("RANGE", range);
+           location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
        }
        else	{
            location.addStringAttribute("TYPE", "Car");
-           int age = (int) (40.0 + 9.0 * g.random.nextGaussian());
-           location.addIntegerAttribute("AGE", age);
+           int range = (int) (20.0 * g.random.nextGaussian());
+           location.addIntegerAttribute("RANGE", range);
+           location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
        }
 
 	   // Not everyone moves at the same speed
@@ -252,20 +255,18 @@ public final class MainAgent implements Steppable	{
        } // check that we haven't already reached our destination
        else if (reachedGoal)	{
     	   status = Status.DISTRIBUTING;
-           System.out.println(this + " has reached its GOAL");
+           System.out.println(this + " is " +status);
            flipPath();
        }
-
+       
        // make sure that we're heading in the right direction
-       //boolean toLSOA = ((MK_7) state).goToLSOA;
-       // if ((toLSOA && pathDirection < 0) || (!toLSOA && pathDirection > 0))	{
+       //boolean toWork = ((MK_7) state).goToWork;
+       // if ((toWork && pathDirection < 0) || (!toWork && pathDirection > 0))	{
        //     flipPath();
        // }
-
-       // move along the current segment
        speed = progress(moveRate);
        currentIndex += speed;
-
+       
        // check to see if the progress has taken the current index beyond its goal
        // given the direction of movement. If so, proceed to the next edge
        if (linkDirection == 1 && currentIndex > endIndex)	{
@@ -292,7 +293,7 @@ public final class MainAgent implements Steppable	{
        reachedGoal = false;
        homebound = false;
        status = Status.OUTBOUND;
-       System.out.println(this + " is OUTBOUND");
+       System.out.println(this + " is " +status);
        this.timeSinceDeparted = 0;
        pathDirection = -pathDirection;
        linkDirection = -linkDirection;
@@ -318,7 +319,7 @@ public final class MainAgent implements Steppable	{
     	   status = Status.INBOUND;
            reachedGoal = true;
            homebound = true;
-           System.out.println(this + " is heading back to HQ");
+           System.out.println(this + " is " +status);
            indexOnPath -= pathDirection; // make sure index is correct
            return;
        }
