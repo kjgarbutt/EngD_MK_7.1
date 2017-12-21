@@ -59,6 +59,7 @@ public final class MainAgent implements Steppable	{
     public int resources_Available = 0;
     public int resources_Distributed = 0;
     public int resources_Capacity = 0;
+    public static int numActive = 0;
     public boolean getReachedGoal() { return hasResources; }
     public void setReachedGoal(boolean val) { hasResources = val; }
     public boolean hasResources = false;

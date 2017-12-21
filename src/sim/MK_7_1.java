@@ -88,6 +88,7 @@ public class MK_7_1 extends SimState	{
     public boolean goToLSOA = true;
 
 	public int activeCount;
+	public int numActive = 0;
 
     public boolean getGoToLSOA()	{
         return goToLSOA;
