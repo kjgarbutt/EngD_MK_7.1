@@ -86,6 +86,9 @@ public class MK_7_1 extends SimState	{
 
     // Here we force the agents to go to or from work at any time
     public boolean goToLSOA = true;
+
+	public int activeCount;
+
     public boolean getGoToLSOA()	{
         return goToLSOA;
     }

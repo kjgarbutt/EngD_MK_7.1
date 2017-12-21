@@ -62,6 +62,8 @@ public final class MainAgent implements Steppable	{
     public boolean getReachedGoal() { return hasResources; }
     public void setReachedGoal(boolean val) { hasResources = val; }
     public boolean hasResources = false;
+    public static boolean active = false;
+    public boolean activated = false;
     String homeTract = "";
     String goalTract = "";
     Node headquartersNode = null;
@@ -77,6 +79,7 @@ public final class MainAgent implements Steppable	{
     double endIndex = 0.0; // end position of current line
     double currentIndex = 0.0; // current location along line
     GeomPlanarGraphEdge currentEdge = null;
+    String type = "";
     private Color inboundColor = Color.black;
     private Color outboundColor = Color.red;
     int linkDirection = 1;
@@ -118,64 +121,91 @@ public final class MainAgent implements Steppable	{
 
 	   // Now set up attributes for this agent
 	   if (g.random.nextBoolean())	{
-           location.addStringAttribute("TYPE", "4x4");
+		   type = "4x4";
+		   location.addStringAttribute("TYPE", "4x4");
+           System. out.println("Agent's TYPE = " + type );
+           
            int range = (int) (40.0 * g.random.nextGaussian());
            location.addIntegerAttribute("RANGE", range);
+           System. out.println("Agent's RANGE = " + range );
+           
+           resources_Available = (int)(Math.random()*70) + 1;
            location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
+           System. out.println("Agent's RESOURCES = " + resources_Available );
+           
+           moveRate = (int)(Math.random()*50) + 1;
+           System. out.println("Agent's MoveRate = " + moveRate );
+           location.addDoubleAttribute("MOVE RATE", moveRate);
        }
        else	{
-           location.addStringAttribute("TYPE", "Car");
+           type = "Car";
+    	   location.addStringAttribute("TYPE", "Car");
+           System. out.println("Agent's TYPE = " + type );
+           
            int range = (int) (20.0 * g.random.nextGaussian());
            location.addIntegerAttribute("RANGE", range);
+           System. out.println("Agent's RANGE = " + range );
+           
+           resources_Available = (int)(Math.random()*70) + 1;
            location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
+           System. out.println("Agent's RESOURCES = " + resources_Available );
+           
+           moveRate = (int)(Math.random()*70) + 1;
+           System. out.println("Agent's MoveRate = " + moveRate );
+           location.addDoubleAttribute("MOVE RATE", moveRate);
        }
+	   
 
 	   // Not everyone moves at the same speed
        // Assigns random speed
 	   // moveRate *= Math.abs(g.random.nextGaussian());
        // Assigns random speed between 0-70
-	   moveRate = (int)(Math.random()*70) + 1;
-       System. out.println("Agent's MoveRate = " + moveRate );
-       location.addDoubleAttribute("MOVE RATE", moveRate);
+	   
 
 	   Coordinate startCoord = null;
 	   startCoord = headquartersNode.getCoordinate();
 	   updatePosition(startCoord);
+	   
+	   //////////////////////////////////////////////////////////////////////////////
+	   //////////////////////////// AGENT ATTRIBUTES ////////////////////////////////
+	   //////////////////////////////////////////////////////////////////////////////
+		
+		/**
+		* ////////////////////////// Agent Resources ////////////////////////////////
+		* @return integer indicating the Agent's levels of resources
+		
+		public resources(Integer resources_Available, Integer resources_Distributed, 
+				Integer resources_Capacity)	{
+		this.resources_Available = resources_Available;
+		this.resources_Distributed = resources_Distributed;
+		this.resources_Capacity = resources_Capacity;
+		}
+		*/
+	   
+		/**
+		* ////////////////////////// Agent Colour ////////////////////////////////////
+		* Want to change the colour of the Agent's depending on their status:
+		* "heading back to HQ" or "heading to goal"
+		*
+		
+		
+		public draw(Object object, Graphics2D graphics, DrawInfo2D info)	{
+		if( hasResources )
+		graphics.setColor( outboundColor );
+		else
+		graphics.setColor( inboundColor );
+		
+		// this code was copied from OvalPortrayal2D
+		int x = (int)(info.draw.x - info.draw.width / 20.0);
+		int y = (int)(info.draw.y - info.draw.height / 20.0);
+		int width = (int)(info.draw.width);
+		int height = (int)(info.draw.height);
+		graphics.fillOval(x,y,width, height);
+		}
+		*/
+
     }
-
-    //////////////////////////////////////////////////////////////////////////////
-    //////////////////////////// AGENT ATTRIBUTES ////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * ////////////////////////// Agent Type /////////////////////////////////////
-     * @return string indicating whether Agent is a "4x4" or a "Car"
-     */
-    public String getType()	{
-        return location.getStringAttribute("TYPE");
-    }
-
-    /**
-	* ////////////////////////// Agent Colour ////////////////////////////////////
-	* Want to change the colour of the Agent's depending on their status:
-	* "heading back to HQ" or "heading to goal"
-	*
-	*/
-
-    public final void draw(Object object, Graphics2D graphics, DrawInfo2D info)	{
- 	   if( hasResources )
- 	       graphics.setColor( outboundColor );
- 	   else
- 	       graphics.setColor( inboundColor );
-
- 	   // this code was copied from OvalPortrayal2D
- 	   int x = (int)(info.draw.x - info.draw.width / 20.0);
- 	   int y = (int)(info.draw.y - info.draw.height / 20.0);
- 	   int width = (int)(info.draw.width);
- 	   int height = (int)(info.draw.height);
- 	   graphics.fillOval(x,y,width, height);
-    }
-
+    
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////// ROUTING /////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
@@ -247,14 +277,20 @@ public final class MainAgent implements Steppable	{
     * ////////////////////////// Step to Move Agent //////////////////////////////
     * Called every tick by the scheduler.
     * Moves the agent along the path.
+ * @param <osviInGeo>
     */
    public void step(SimState state)	{
+	   MK_7_1 gstate = (MK_7_1) state;
+	   
        // check that we've been placed on an Edge
        if (segment == null)	{
            return;
-       } // check that we haven't already reached our destination
+       }
+       
+       // check that we haven't already reached our destination
        else if (reachedGoal)	{
     	   status = Status.DISTRIBUTING;
+    	   setActive(gstate);
            System.out.println(this + " is " +status);
            flipPath();
        }
@@ -278,12 +314,47 @@ public final class MainAgent implements Steppable	{
            updatePosition(currentPos);
            transitionToNextEdge(startIndex - currentIndex);
        } else
-       { // just update the position!
+       { 
+    	   // just update the position!
            Coordinate currentPos = segment.extractPoint(currentIndex);
 
            updatePosition(currentPos);
        }
    }
+   
+   private void setActive(MK_7_1 gState){
+		boolean alreadyActive = false;
+		
+		if(MainAgent.active)
+			alreadyActive = true;
+		
+		int numActive = 0;
+		
+		//Loop through all the agents within vision and count the number of active civilians
+   	//MasonGeometry buffer = new MasonGeometry(this.location.buffer(osviState.personVision), this);	
+   	//Bag persons = osviState.persons.getCoveredObjects(buffer);
+   	//Bag cops = osviState.cops.getCoveredObjects(buffer);
+		//for(Object person : MainAgent){
+			//MainAgent p = (MainAgent)((MasonGeometry) person).getUserData();
+			
+			if(agents.MainAgent.active){
+				numActive++;
+			}
+		//}
+		
+		/*Calculations for going active*/
+		//arrestProbability = 1 - Math.exp(-2.3*((cops.size()/(numActive+1))));
+		//grievance = perceivedHardship * (1 - govtLegitimacy);
+		//this.active = (grievance - (riskAversion * arrestProbability)) > osviState.threshold;
+		
+		if(!alreadyActive && this.active){
+			gState.activeCount++;	
+			activated = true;
+		}
+		else if(alreadyActive && !this.active){
+			gState.activeCount--;
+		}
+	}
 
    /**
     * ////////////////////////// Flip Agent's Route //////////////////////////////
@@ -390,7 +461,6 @@ public final class MainAgent implements Steppable	{
        world.agents.setGeometryLocation(location, pointMoveTo);
    }
    
-
    /**
     * ////////////////////////// Agent's Location ////////////////////////////////
     * Return geometry representing agent location
