@@ -1,14 +1,6 @@
 # Created by https://www.gitignore.io/api/java,data,macos,eclipse
 
 ### Data ###
-*.csv
-*.dbf
-*.shp
-*.cpg
-*.prj
-*.qpj
-*.shx
-*.dat
 *.efx
 *.gbr
 *.key
