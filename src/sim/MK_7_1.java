@@ -142,7 +142,7 @@ public class MK_7_1 extends SimState	{
         try {
             // read in the roads shapefile to create the transit network
         	URL roadsFile = MK_7_1.class.getResource
-        			("/data/GL_ITN.shp");
+        			("/data/GL_ITN_MultipartToSinglepart.shp");
             ShapeFileImporter.read(roadsFile, roads);
             System.out.println("	Roads shapefile: " +roadsFile);
 
@@ -161,7 +161,7 @@ public class MK_7_1 extends SimState	{
 	        //   	}
 
             URL wardsFile = MK_7_1.class.getResource
-            		("/data/GloucestershireFinal_LSOA_QGIS.shp");
+            		("/data/GloucestershireFinal_LSOA.shp");
             ShapeFileImporter.read(wardsFile, world, Polygon.class);
             System.out.println("	OSVI shapefile: " +wardsFile);
 
@@ -254,6 +254,9 @@ public class MK_7_1 extends SimState	{
         {
             System.out.println("Error: missing required data file");
         } catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
