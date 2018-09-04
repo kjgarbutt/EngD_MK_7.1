@@ -14,4 +14,12 @@ The agents are assigned speeds at  random.
 Once the model is started, the agents move from A to B, then they change direction 
 and head back to their start position. The process repeats until the user quits.
 
+The data files can be found here: https://drive.google.com/open?id=1s2Fo5bBxzc1ePukY4xYB0NA7JHFo2Bjh
+
+All the necessary JARs can be found here: https://drive.google.com/file/d/1sxW6EAw3tkWAqI834Cf4YVcAkSyHJ6TS/view?usp=sharing
+
+The MASON manual can be found here: https://drive.google.com/open?id=1ayvTOzeD8rzYWvBAohJ_01NfWDOuqU2q
+
+The GeoMASON cookbook can be found here: https://drive.google.com/open?id=1wxS4-S6tXelIdC3XcFLE-NXGRhcNY5UT
+
 @author KJGarbutt
