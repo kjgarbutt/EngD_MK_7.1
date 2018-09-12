@@ -78,6 +78,7 @@ public class MK_7_1WithUI extends GUIState	{
     	sim.MK_7_1 world = (sim.MK_7_1) state;
 
         // the polygon portrayal
+    	System.out.println("Setting up OSVI Portrayals");
         polyPortrayal.setField(world.world);
         polyPortrayal.setPortrayalForAll(new PolyPortrayal());
 

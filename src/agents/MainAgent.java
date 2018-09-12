@@ -226,6 +226,7 @@ public final class MainAgent implements Steppable	{
            		+ "access the given goal.");
            return false;
        } else	{
+    	   System.out.println(homeTract + " has a new A* path...");
            return true;
        }
    }
@@ -293,6 +294,13 @@ public final class MainAgent implements Steppable	{
     	   status = Status.DISTRIBUTING;
     	   setActive(gstate);
            System.out.println(this + " is " +status);
+           
+           
+           //////////////////////////////////////////////
+           //////NEED TO DROP GOODS, CHANGE STATUS///////
+           //////////////////////////////////////////////
+           
+           
            flipPath();
        }
        

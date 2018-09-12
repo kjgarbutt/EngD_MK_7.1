@@ -305,7 +305,7 @@ public class MK_7_1 extends SimState	{
 
 		String agentFilePath = MK_7_1.class.getResource(agentfilename).getPath();
 		FileInputStream agentfstream = new FileInputStream(agentFilePath);
-		System.out.println("Reading Agent's Goals CSV file: " +agentFilePath);
+		System.out.println("Reading Agent's Goals file: " +agentFilePath);
 
 		try {
 			agentGoalsBuffer = new BufferedReader
@@ -418,6 +418,7 @@ public class MK_7_1 extends SimState	{
      */
     private void addIntersectionNodes(Iterator<?> nodeIterator,
                                       GeomVectorField intersections)	{
+    	System.out.println("Adding Intersection Nodes...");
         GeometryFactory fact = new GeometryFactory();
         Coordinate coord = null;
         Point point = null;
