@@ -9,10 +9,12 @@ Start model
           create OSVI map portrayal
             read OSVI CSV
             assign colours to polygon objects
+            // HOW TO LINK OSVI POLY VIZ TO CENTROID AGENTS???
           create LSOA/Centroid agents
             FOR int i = 0; i < numCentroids; i++
               createNewCentroid
               add Centroid attributes (location[road segment], lsoaUnit, lsoaUnitMax, LSOA info)
+              // HOW TO LINK CENTROID AGENTS TO OSVI POLY VIZ???
           set up MBR
           print all shapefiles
           create HQ agent
@@ -21,21 +23,14 @@ Start model
           create goalLocations
             FOR int i = 0; i < numCentroids; i++
               LOOP through numCentroids
-                Read in and assign OSVI rating/colour to each LSOA/Centroid
+                assign OSVI rating/colour to each LSOA/Centroid
+                // HOW TO LINK goalLocations to CENTROID AGENTS?
+                // goalLocations can just be Network segments and used for routing
           create NGOAgents
             FOR int i = 0; i < numNGOAgents; i++
               createNewNGOAgent
-                add NGOAgent attributes (type, moveRate, agentUnitMax, agentUnit, status)
-                assign startingEdge as HQ (hqLocation), currentLocation as HQ
-                set status:
-                  IF currentLocation = hqLocation
-                    status = At HQ Replenishing
-                  ELSE IF currentLocation != goalLocation
-                    status = Outbound
-                  ELSE IF currentLocation = goalLocation
-                    status = At Goal
-                  ELSE
-                    status = Inbound
+                add NGOAgent attributes (type, moveRate, agentUnitMax, agentUnit)
+                assign startingEdge as HQ
         ELSE return IO ERROR
     ELSE return FileNotFoundException ERROR
   step()  // ????
@@ -50,14 +45,13 @@ Start model
             assign goalLocation to NGOAgent
               // INITIALLY AT RANDOM???
               // THEN RED/HIGH CENTROIDS/GOALS FIRST??? THEN ORANGE...
-              // THEN PRIORITY AREAS FIRST??? PRIO_CARE???
-              // CLOSEST TO HQ???
+              // THEN PRIORITY AREAS FIRST???
             calculate route from HQ to goalLocation - findNewAStarPath()
-              // INCLUDE HEURISTIC - POP_WEIGHT? COST_WEIGHT? SPEED_WEIGHT?
             IF route is available to goalLocation
               assign route to each NGOAgents
                 IF NGOAgents can move along route
                   NGOAgents moves one road segment  // OR WHOLE ROUTE IF STEP = 1 HOUR???
+                  status = Outbound
                   NGOAgents currentLocation is updated to new road segment
                     IF NGOAgents currentLocation is EQUAL to goalLocation
                       status = At Goal
@@ -66,18 +60,15 @@ Start model
                           status = Distributing
                           decrement agentUnit by 1
                           increment lsoaUnit by 1
-                          NGOAgent waits at goalLocation for X steps // DISTRIBUTION TIME???
-                          // NEED TO UPDATE goalLocations AND OSVI VIZ HERE, I THINK
+                          NGOAgent waits at goalLocation for X steps
+                          // HOW TO RECORD lsoaUnit CHANGE AND UPDATE OSVI POLY VIZ???
                         ELSE request new goalLocation from HQ
-                          // NEEDS TO EXIT AND JUMP BACK TO ASSIGN goalLocation somehow???
-                      ELSE NGOAgent return to HQ to replenish - flipPath()
-                        IF goalLocation = hqLocation
-                          status = Inbound
-                        ELSE IF status = Outbound
+                      ELSE Return to HQ to replenish - flipPath()
+                        status = Inbound
                     ELSE continue on assigned route
-                ELSE return movement failure ERROR + road segment
+                ELSE return movement failure ERROR
             ELSE return route failure ERROR
-          ELSE return goal failure ERROR + goal number
+          ELSE return goal failure ERROR
       ELSE return HQ resources failure ERROR
     ELSE return NGOAgents failure ERROR
   finish()
