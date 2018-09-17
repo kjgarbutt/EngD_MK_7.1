@@ -1,0 +1,88 @@
+Start model
+  createWorld()
+    IF shapefiles available
+      readInShapefiles()
+        IF files/shapefiles read in correctly
+          create road network
+            extractFromRoadLinks()
+            addIntersectionNodes()
+          create OSVI map portrayal
+            read OSVI CSV
+            assign colours to polygon objects
+          create LSOA/Centroid agents
+            FOR int i = 0; i < numCentroids; i++
+              createNewCentroid
+              add Centroid attributes (location[road segment], lsoaUnit, lsoaUnitMax, LSOA info)
+          set up MBR
+          print all shapefiles
+          create HQ agent
+            assign hqUnits to HQ
+            // HOW TO REFRESH hqUnits EVERY 12 HOURS????
+          create goalLocations
+            FOR int i = 0; i < numCentroids; i++
+              LOOP through numCentroids
+                Read in and assign OSVI rating/colour to each LSOA/Centroid
+          create NGOAgents
+            FOR int i = 0; i < numNGOAgents; i++
+              createNewNGOAgent
+                add NGOAgent attributes (type, moveRate, agentUnitMax, agentUnit, status)
+                assign startingEdge as HQ (hqLocation), currentLocation as HQ
+                set status:
+                  IF currentLocation = hqLocation
+                    status = At HQ Replenishing
+                  ELSE IF currentLocation != goalLocation
+                    status = Outbound
+                  ELSE IF currentLocation = goalLocation
+                    status = At Goal
+                  ELSE
+                    status = Inbound
+        ELSE return IO ERROR
+    ELSE return FileNotFoundException ERROR
+  step()  // ????
+    IF NGOAgents added successfully
+      WHILE model step count < 84 //7*12 hour days. Each model step = 1 hour???
+      WHILE HQ has hqUnits
+        LOOP through NGOAgents
+          assign NGOAgent agentUnitMax (or max left at end?)
+            decrement hqUnits by agentUnitMax
+            set agentUnit to agentUnitMax
+          IF goalLocation available
+            assign goalLocation to NGOAgent
+              // INITIALLY AT RANDOM???
+              // THEN RED/HIGH CENTROIDS/GOALS FIRST??? THEN ORANGE...
+              // THEN PRIORITY AREAS FIRST??? PRIO_CARE???
+              // CLOSEST TO HQ???
+            calculate route from HQ to goalLocation - findNewAStarPath()
+              // INCLUDE HEURISTIC - POP_WEIGHT? COST_WEIGHT? SPEED_WEIGHT?
+            IF route is available to goalLocation
+              assign route to each NGOAgents
+                IF NGOAgents can move along route
+                  NGOAgents moves one road segment  // OR WHOLE ROUTE IF STEP = 1 HOUR???
+                  NGOAgents currentLocation is updated to new road segment
+                    IF NGOAgents currentLocation is EQUAL to goalLocation
+                      status = At Goal
+                      IF NGOAgents agentUnit GREATER than 1
+                        IF lsoaUnit LESS than lsoaUnitMax
+                          status = Distributing
+                          decrement agentUnit by 1
+                          increment lsoaUnit by 1
+                          NGOAgent waits at goalLocation for X steps // DISTRIBUTION TIME???
+                          // NEED TO UPDATE goalLocations AND OSVI VIZ HERE, I THINK
+                        ELSE request new goalLocation from HQ
+                          // NEEDS TO EXIT AND JUMP BACK TO ASSIGN goalLocation somehow???
+                      ELSE NGOAgent return to HQ to replenish - flipPath()
+                        IF goalLocation = hqLocation
+                          status = Inbound
+                        ELSE IF status = Outbound
+                    ELSE continue on assigned route
+                ELSE return movement failure ERROR + road segment
+            ELSE return route failure ERROR
+          ELSE return goal failure ERROR + goal number
+      ELSE return HQ resources failure ERROR
+    ELSE return NGOAgents failure ERROR
+  finish()
+    IF simulation ended by user
+      Ask user if Output files wanted?
+    ELSE simulation reached ended
+      SAVE CSVs and the like
+End model
