@@ -78,7 +78,6 @@ public class MK_7_1WithUI extends GUIState	{
     	sim.MK_7_1 world = (sim.MK_7_1) state;
 
         // the polygon portrayal
-    	System.out.println("Setting up OSVI Portrayals");
         polyPortrayal.setField(world.world);
         polyPortrayal.setPortrayalForAll(new PolyPortrayal());
 
@@ -145,7 +144,7 @@ public class MK_7_1WithUI extends GUIState	{
                     double maxS = 0, minS = 10000, avgS = 0, count = 0;
                     //////////////////////////// Main Agent //////////////////////
                     for (MainAgent a : world.agentList)	{
-                        if (a.reachedGoal)	{
+                        if (a.distributing)	{
                             continue;
                         }
                         count++;

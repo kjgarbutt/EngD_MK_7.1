@@ -22,466 +22,472 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import com.vividsolutions.jts.planargraph.Node;
 
 /**
-*
-* "MK_7_" is iteration 7.1 of my EngD project model. It varies little from MK_7, 
-* and just has updated details to include Gloucestershire date. It was originally
-* adapted from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and 
-* Andrew Crooks.
-* 
-* The model reads a number of GIS shapefiles and displays a road network, two 
-* Environment Agency flood maps and a bespoke Open Source Vulnerability Index 
-* (OSVI). The model reads in a .CSV and generates a predetermined number of agents 
-* with set characteristics. The agents are placed on the road network and are 
-* located at a Red Cross office. The model reads a separate .CSV and assigns goal 
-* locations to each agent at random from a predetermined list. The agents are 
-* assigned speeds at random. Once the model is started, the agents move from 
-* A to B, then they change direction and head back to their start position. 
-* The process repeats until the user quits.
-*
-* @author KJGarbutt
-*
-*/
-public final class MainAgent implements Steppable	{
-    private static final long serialVersionUID = -1113018274619047013L;
+ *
+ * "MK_7_" is iteration 7.1 of my EngD project model. It varies little from
+ * MK_7, and just has updated details to include Gloucestershire date. It was
+ * originally adapted from the MASON demo, "Gridlock", made by Sarah Wise, Mark
+ * Coletti, and Andrew Crooks.
+ * 
+ * The model reads a number of GIS shapefiles and displays a road network, two
+ * Environment Agency flood maps and a bespoke Open Source Vulnerability Index
+ * (OSVI). The model reads in a .CSV and generates a predetermined number of
+ * agents with set characteristics. The agents are placed on the road network
+ * and are located at a Red Cross office. The model reads a separate .CSV and
+ * assigns goal locations to each agent at random from a predetermined list. The
+ * agents are assigned speeds at random. Once the model is started, the agents
+ * move from A to B, then they change direction and head back to their start
+ * position. The process repeats until the user quits.
+ *
+ * @author KJGarbutt
+ *
+ */
+public final class MainAgent implements Steppable {
+	private static final long serialVersionUID = -1113018274619047013L;
 
-    //////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////// PARAMETERS ///////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////// PARAMETERS ///////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-    MK_7_1 world;
-    // Residence/Goal/Status Attributes
-    public Status status = null;
-    public int timeSinceDeparted = 0;
-    public boolean homebound = false;
-    public boolean reachedGoal = false;
-    public static final int waiting_Period = 100;
-    public int waiting = waiting_Period;
-    public int resources_Available = 0;
-    public int resources_Distributed = 0;
-    public int resources_Capacity = 0;
-    public static int numActive = 0;
-    public boolean getReachedGoal() { return hasResources; }
-    public void setReachedGoal(boolean val) { hasResources = val; }
-    public boolean hasResources = false;
-    public static boolean active = false;
-    public boolean activated = false;
-    String homeTract = "";
-    String goalTract = "";
-    Node headquartersNode = null;
-    Node lsoaNode = null;
-    // private Point location;
-    private MasonGeometry location; // point that denotes agent's position
-    // How much to move the agent by in each step()
-    private double basemoveRate = 10.0;
-    private double moveRate = basemoveRate;
-    //private double moveRate = 70;
-    private LengthIndexedLine segment = null;
-    double startIndex = 0.0; // start position of current line
-    double endIndex = 0.0; // end position of current line
-    double currentIndex = 0.0; // current location along line
-    GeomPlanarGraphEdge currentEdge = null;
-    String type = "";
-    private Color inboundColor = Color.black;
-    private Color outboundColor = Color.red;
-    int linkDirection = 1;
-    public double speed = 0; // useful for graph
-    ArrayList<GeomPlanarGraphDirectedEdge> pathFromHQToLSOA =
-        new ArrayList<GeomPlanarGraphDirectedEdge>();
-    int indexOnPath = 0;
-    int pathDirection = 1;
-    PointMoveTo pointMoveTo = new PointMoveTo();
+	MK_7_1 world;
+	// Residence/Goal/Status Attributes
+	public Status status = null;
+	public int timeSinceDeparted = 0;
+	public boolean inbound = false;
+	public boolean outbound = false;
+	public boolean distributing = false;
+	public boolean replenishing = false;
+	public static final int waiting_Period = 100;
+	public int waiting = waiting_Period;
+	public int resources_Available = 0;
+	public int resources_Distributed = 0;
+	public int resources_Capacity = 0;
+	public static int numActive = 0;
 
-    static private GeometryFactory fact = new GeometryFactory();
-    public ArrayList <String> recordOfTrips = new ArrayList <String> ();
+	public boolean getReachedGoal() {
+		return hasResources;
+	}
 
-    /**
+	public void setReachedGoal(boolean val) {
+		hasResources = val;
+	}
+
+	public boolean hasResources = false;
+	public static boolean active = false;
+	public boolean activated = false;
+	String homeTract = "";
+	String goalTract = "";
+	String agentName = "";
+	Node headquartersNode = null;
+	Node lsoaNode = null;
+	// private Point location;
+	private MasonGeometry location; // point that denotes agent's position
+	// How much to move the agent by in each step()
+	private double basemoveRate = 10.0;
+	private double moveRate = basemoveRate;
+	// private double moveRate = 70;
+	private LengthIndexedLine segment = null;
+	double startIndex = 0.0; // start position of current line
+	double endIndex = 0.0; // end position of current line
+	double currentIndex = 0.0; // current location along line
+	GeomPlanarGraphEdge currentEdge = null;
+	String type = "";
+	private Color inboundColor = Color.black;
+	private Color outboundColor = Color.red;
+	int linkDirection = 1;
+	public double speed = 0; // useful for graph
+	ArrayList<GeomPlanarGraphDirectedEdge> pathFromHQToLSOA = new ArrayList<GeomPlanarGraphDirectedEdge>();
+	int indexOnPath = 0;
+	int pathDirection = 1;
+	PointMoveTo pointMoveTo = new PointMoveTo();
+
+	static private GeometryFactory fact = new GeometryFactory();
+	public ArrayList<String> recordOfTrips = new ArrayList<String>();
+
+	/**
 	 * //////////////////////// Model Constructor ////////////////////////////////
-	 * Constructor: specifies parameters for Agents
-	 * Default Wrapper Constructor: provides the default parameters
+	 * Constructor: specifies parameters for Agents Default Wrapper Constructor:
+	 * provides the default parameters
 	 *
 	 * //@param location - Coordinate indicating the initial position of the Agent
 	 * //@param headquartersNode - Coordinate indicating the Agent's home location
 	 * //@param lsaoNode - Coordinate indicating the Agent's LSOA destination
 	 * //@param world - reference to the containing GloucestershireRouting instance
+	 * @param homeTract2 
 	 */
-    public MainAgent(MK_7_1 g, String homeTract, GeomPlanarGraphEdge startingEdge,
-    		GeomPlanarGraphEdge goalEdge)	{
-	   world = g;
+	public MainAgent(MK_7_1 g, String agentName, String homeTract, GeomPlanarGraphEdge startingEdge, GeomPlanarGraphEdge goalEdge) {
+		world = g;
 
-	   // set up information about where the node is and where it's going
-	   headquartersNode = startingEdge.getDirEdge(0).getFromNode();
-	   lsoaNode = goalEdge.getDirEdge(0).getToNode();
-	   this.homeTract = homeTract;
-	   this.goalTract = goalTract;
+		// set up information about where the node is and where it's going
+		headquartersNode = startingEdge.getDirEdge(0).getFromNode();
+		lsoaNode = goalEdge.getDirEdge(0).getToNode();
+		this.agentName = agentName;
+		this.homeTract = homeTract;
+		this.goalTract = goalTract;
 
-	   // set the location to be displayed
-	   //GeometryFactory fact = new GeometryFactory();
+		// set the location to be displayed
+		// GeometryFactory fact = new GeometryFactory();
 
-	   location = new MasonGeometry(fact.createPoint(new Coordinate(10, 10))) ;
+		location = new MasonGeometry(fact.createPoint(new Coordinate(10, 10)));
 
-	   location.isMovable = true;
+		location.isMovable = true;
 
-	   // Now set up attributes for this agent
-	   if (g.random.nextBoolean())	{
-		   type = "4x4";
-		   location.addStringAttribute("TYPE", "4x4");
-           System. out.println("Agent's TYPE = " + type );
-           
-           int range = (int) (40.0 * g.random.nextGaussian());
-           location.addIntegerAttribute("RANGE", range);
-           System. out.println("Agent's RANGE = " + range );
-           
-           resources_Available = (int)(Math.random()*70) + 1;
-           location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
-           System. out.println("Agent's RESOURCES = " + resources_Available );
-           
-           moveRate = (int)(Math.random()*50) + 1;
-           System. out.println("Agent's MoveRate = " + moveRate );
-           location.addDoubleAttribute("MOVE RATE", moveRate);
-       }
-       else	{
-           type = "Car";
-    	   location.addStringAttribute("TYPE", "Car");
-           System. out.println("Agent's TYPE = " + type );
-           
-           int range = (int) (20.0 * g.random.nextGaussian());
-           location.addIntegerAttribute("RANGE", range);
-           System. out.println("Agent's RANGE = " + range );
-           
-           resources_Available = (int)(Math.random()*70) + 1;
-           location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
-           System. out.println("Agent's RESOURCES = " + resources_Available );
-           
-           moveRate = (int)(Math.random()*70) + 1;
-           System. out.println("Agent's MoveRate = " + moveRate );
-           location.addDoubleAttribute("MOVE RATE", moveRate);
-       }
-	   
+		// Now set up attributes for this agent
+		if (g.random.nextBoolean()) {
+			type = "4x4";
+			location.addStringAttribute("TYPE", "4x4");
+			System.out.println("Agent's Vehicle = " + type);
 
-	   // Not everyone moves at the same speed
-       // Assigns random speed
-	   // moveRate *= Math.abs(g.random.nextGaussian());
-       // Assigns random speed between 0-70
-	   
+			int range = (int) (40.0 * g.random.nextGaussian());
+			location.addIntegerAttribute("RANGE", range);
+			// System. out.println("Agent's RANGE = " + range );
 
-	   Coordinate startCoord = null;
-	   startCoord = headquartersNode.getCoordinate();
-	   updatePosition(startCoord);
-	   
-	   //////////////////////////////////////////////////////////////////////////////
-	   //////////////////////////// AGENT ATTRIBUTES ////////////////////////////////
-	   //////////////////////////////////////////////////////////////////////////////
-		
-		/**
-		* ////////////////////////// Agent Resources ////////////////////////////////
-		* @return integer indicating the Agent's levels of resources
-		
-		public resources(Integer resources_Available, Integer resources_Distributed, 
-				Integer resources_Capacity)	{
-		this.resources_Available = resources_Available;
-		this.resources_Distributed = resources_Distributed;
-		this.resources_Capacity = resources_Capacity;
+			resources_Available = (int) (Math.random() * 70) + 1;
+			location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
+			System.out.println("Agent's available resources = " + resources_Available);
+
+			moveRate = (int) (Math.random() * 50) + 1;
+			System.out.println("Agent's speed = " + moveRate);
+			location.addDoubleAttribute("MOVE RATE", moveRate);
+		} else {
+			type = "Car";
+			location.addStringAttribute("TYPE", "Car");
+			System.out.println("Agent's Vehicle = " + type);
+
+			int range = (int) (20.0 * g.random.nextGaussian());
+			location.addIntegerAttribute("RANGE", range);
+			// System. out.println("Agent's RANGE = " + range );
+
+			resources_Available = (int) (Math.random() * 70) + 1;
+			location.addIntegerAttribute("RESOURCES AVAILABLE", resources_Available);
+			System.out.println("Agent's  available resources = " + resources_Available);
+
+			moveRate = (int) (Math.random() * 70) + 1;
+			System.out.println("Agent's speed = " + moveRate);
+			location.addDoubleAttribute("MOVE RATE", moveRate);
 		}
-		*/
-	   
-		/**
-		* ////////////////////////// Agent Colour ////////////////////////////////////
-		* Want to change the colour of the Agent's depending on their status:
-		* "heading back to HQ" or "heading to goal"
-		*
-		
-		
-		public draw(Object object, Graphics2D graphics, DrawInfo2D info)	{
-		if( hasResources )
-		graphics.setColor( outboundColor );
-		else
-		graphics.setColor( inboundColor );
-		
-		// this code was copied from OvalPortrayal2D
-		int x = (int)(info.draw.x - info.draw.width / 20.0);
-		int y = (int)(info.draw.y - info.draw.height / 20.0);
-		int width = (int)(info.draw.width);
-		int height = (int)(info.draw.height);
-		graphics.fillOval(x,y,width, height);
-		}
-		*/
 
-    }
-    
-    //////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////// ROUTING /////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
+		// Not everyone moves at the same speed
+		// Assigns random speed
+		// moveRate *= Math.abs(g.random.nextGaussian());
+		// Assigns random speed between 0-70
+
+		Coordinate startCoord = null;
+		startCoord = headquartersNode.getCoordinate();
+		updatePosition(startCoord);
+
+		//////////////////////////////////////////////////////////////////////////////
+		//////////////////////////// AGENT ATTRIBUTES ////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////
+
+		/**
+		 * ////////////////////////// Agent Resources ////////////////////////////////
+		 * 
+		 * @return integer indicating the Agent's levels of resources
+		 * 
+		 *         public resources(Integer resources_Available, Integer
+		 *         resources_Distributed, Integer resources_Capacity) {
+		 *         this.resources_Available = resources_Available;
+		 *         this.resources_Distributed = resources_Distributed;
+		 *         this.resources_Capacity = resources_Capacity; }
+		 */
+
+		/**
+		 * ////////////////////////// Agent Colour ////////////////////////////////////
+		 * Want to change the colour of the Agent's depending on their status: "heading
+		 * back to HQ" or "heading to goal"
+		 *
+		 * 
+		 * 
+		 * public draw(Object object, Graphics2D graphics, DrawInfo2D info) { if(
+		 * hasResources ) graphics.setColor( outboundColor ); else graphics.setColor(
+		 * inboundColor );
+		 * 
+		 * // this code was copied from OvalPortrayal2D int x = (int)(info.draw.x -
+		 * info.draw.width / 20.0); int y = (int)(info.draw.y - info.draw.height /
+		 * 20.0); int width = (int)(info.draw.width); int height =
+		 * (int)(info.draw.height); graphics.fillOval(x,y,width, height); }
+		 */
+
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////// ROUTING /////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
 	/**
-	* ////////////////////////// A* Route Initialisation /////////////////////////
-	* Initialization of an Agent: find an A* path from HQ to LSOA!
-	*
-	* @param state
-	* @return whether or not the agent successfully found a path to work
-	*/
-   public boolean start(MK_7_1 state)	{
-       findNewAStarPath(state);
-       if (pathFromHQToLSOA.isEmpty())	{
-           System.out.println("Initialization of a Agent (" +homeTract
-           		+ ") failed: it is located in a part of the network that cannot "
-           		+ "access the given goal.");
-           return false;
-       } else	{
-    	   System.out.println("Agent has a new A* path...");
-           return true;
-       }
-   }
-
-   /**
-    * ////////////////////////// Plot A* Route ///////////////////////////////////
-    * Plots a path between the Agent's home Node and its work Node
-    */
-   private void findNewAStarPath(MK_7_1 geoTest)	{
-
-       // get the home and work Nodes with which this Agent is associated
-       Node currentJunction = geoTest.network.findNode
-    		   (location.geometry.getCoordinate());
-       Node destinationJunction = lsoaNode;
-
-       if (currentJunction == null)	{
-           return; // just a check
-       }
-       // find the appropriate A* path between them
-       AStar pathfinder = new AStar();
-       ArrayList<GeomPlanarGraphDirectedEdge> path =
-           pathfinder.astarPath(currentJunction, destinationJunction);
-
-       // if the path works, lay it in
-       if (path != null && path.size() > 0)	{
-
-           // save it
-           pathFromHQToLSOA = path;
-
-           // set up how to traverse this first link
-           GeomPlanarGraphEdge edge =
-               (GeomPlanarGraphEdge) path.get(0).getEdge();
-           setupEdge(edge);
-
-           // update the current position for this link
-           updatePosition(segment.extractPoint(currentIndex));
-
-       }
-   }
-
-   double progress(double val)	{
-       double edgeLength = currentEdge.getLine().getLength();
-       double traffic = world.edgeTraffic.get(currentEdge).size();
-       double factor = 1000 * edgeLength / (traffic * 5);
-       factor = Math.min(1, factor);
-       return val * linkDirection * factor;
-   }
-
-   /**
-    * ////////////////////////// Step to Move Agent //////////////////////////////
-    * Called every tick by the scheduler.
-    * Moves the agent along the path.
-    * @param <osviInGeo>
-    */
-   public void step(SimState state)	{
-	   MK_7_1 gstate = (MK_7_1) state;
-	   
-       // check that we've been placed on an Edge
-       if (segment == null)	{
-           return;
-       }
-       
-       // check that we haven't already reached our destination
-       else if (reachedGoal)	{
-    	   status = Status.DISTRIBUTING;
-    	   setActive(gstate);
-           System.out.println(this + " is " +status);
-           
-           //////////////////////////////////////////////
-           //////NEED TO DROP GOODS, CHANGE STATUS///////
-           //////////////////////////////////////////////
-           
-    	   recordOfTrips.add(this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCoordinate().toString());
-    	   
-           flipPath();
-           state.schedule.scheduleOnce(state.schedule.getTime() + 50, this);	// makes Agent wait 
-      
-           return;
-       }
-       
-       // make sure that we're heading in the right direction
-       //boolean toWork = ((MK_7) state).goToWork;
-       // if ((toWork && pathDirection < 0) || (!toWork && pathDirection > 0))	{
-       //     flipPath();
-       // }
-       speed = progress(moveRate);
-       currentIndex += speed;
-       
-       // check to see if the progress has taken the current index beyond its goal
-       // given the direction of movement. If so, proceed to the next edge
-       if (linkDirection == 1 && currentIndex > endIndex)	{
-           Coordinate currentPos = segment.extractPoint(endIndex);
-           updatePosition(currentPos);
-           transitionToNextEdge(currentIndex - endIndex);
-       } else if (linkDirection == -1 && currentIndex < startIndex)	{
-           Coordinate currentPos = segment.extractPoint(startIndex);
-           updatePosition(currentPos);
-           transitionToNextEdge(startIndex - currentIndex);
-       } else
-       { 
-    	   // just update the position!
-           Coordinate currentPos = segment.extractPoint(currentIndex);
-
-           updatePosition(currentPos);
-       }
-       
-       state.schedule.scheduleOnce(this);
-   }
-   
-   private void setActive(MK_7_1 gState){
-		boolean alreadyActive = false;
-		
-		if(MainAgent.active)
-			alreadyActive = true;
-		
-		int numActive = 0;
-		
-		//Loop through all the agents within vision and count the number of active civilians
-   	//MasonGeometry buffer = new MasonGeometry(this.location.buffer(osviState.personVision), this);	
-   	//Bag persons = osviState.persons.getCoveredObjects(buffer);
-   	//Bag cops = osviState.cops.getCoveredObjects(buffer);
-		//for(Object person : MainAgent){
-			//MainAgent p = (MainAgent)((MasonGeometry) person).getUserData();
-			
-			if(agents.MainAgent.active){
-				numActive++;
-			}
-		//}
-		
-		/*Calculations for going active*/
-		//arrestProbability = 1 - Math.exp(-2.3*((cops.size()/(numActive+1))));
-		//grievance = perceivedHardship * (1 - govtLegitimacy);
-		//this.active = (grievance - (riskAversion * arrestProbability)) > osviState.threshold;
-		
-		if(!alreadyActive && this.active){
-			gState.activeCount++;	
-			activated = true;
+	 * ////////////////////////// A* Route Initialisation /////////////////////////
+	 * Initialization of an Agent: find an A* path from HQ to LSOA!
+	 *
+	 * @param state
+	 * @return whether or not the agent successfully found a path to work
+	 */
+	public boolean start(MK_7_1 state) {
+		findNewAStarPath(state);
+		if (pathFromHQToLSOA.isEmpty()) {
+			System.out.println("Initialization of a Agent (" + homeTract
+					+ ") failed: it is located in a part of the network that cannot " + "access the given goal.");
+			return false;
+		} else {
+			System.out.println("Agent has a new A* path...");
+			return true;
 		}
-		else if(alreadyActive && !this.active){
+	}
+
+	/**
+	 * ////////////////////////// Plot A* Route ///////////////////////////////////
+	 * Plots a path between the Agent's home Node and its work Node
+	 */
+	private void findNewAStarPath(MK_7_1 geoTest) {
+
+		// get the home and work Nodes with which this Agent is associated
+		Node currentJunction = geoTest.network.findNode(location.geometry.getCoordinate());
+		Node destinationJunction = lsoaNode;
+
+		if (currentJunction == null) {
+			return; // just a check
+		}
+		// find the appropriate A* path between them
+		AStar pathfinder = new AStar();
+		ArrayList<GeomPlanarGraphDirectedEdge> path = pathfinder.astarPath(currentJunction, destinationJunction);
+
+		// if the path works, lay it in
+		if (path != null && path.size() > 0) {
+
+			// save it
+			pathFromHQToLSOA = path;
+
+			// set up how to traverse this first link
+			GeomPlanarGraphEdge edge = (GeomPlanarGraphEdge) path.get(0).getEdge();
+			setupEdge(edge);
+
+			// update the current position for this link
+			updatePosition(segment.extractPoint(currentIndex));
+
+		}
+	}
+
+	double progress(double val) {
+		double edgeLength = currentEdge.getLine().getLength();
+		double traffic = world.edgeTraffic.get(currentEdge).size();
+		double factor = 1000 * edgeLength / (traffic * 5);
+		factor = Math.min(1, factor);
+		return val * linkDirection * factor;
+	}
+
+	/**
+	 * ////////////////////////// Step to Move Agent //////////////////////////////
+	 * Called every tick by the scheduler. Moves the agent along the path.
+	 * 
+	 * @param <osviInGeo>
+	 */
+	public void step(SimState state) {
+		MK_7_1 gstate = (MK_7_1) state;
+		
+		// check that we've been placed on an Edge
+		if (segment == null) {
+			return;
+		}
+		else if (segment != null && currentJunction = destinationJunction) {
+
+			
+		}
+		// check that we haven't already reached our destination
+		else if (distributing) {
+			status = Status.DISTRIBUTING;
+			setActive(gstate);
+			System.out.println(this + " is " + status);
+		
+			//////////////////////////////////////////////
+			////// NEED TO DROP GOODS, CHANGE STATUS /////
+			//////////////////////////////////////////////
+
+			recordOfTrips.add(
+					//this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCoordinate().toString());
+					this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCentroid().toString());
+
+			flipPath();
+			state.schedule.scheduleOnce(state.schedule.getTime() + 50, this); // makes Agent wait
+
+			return;
+		}
+
+		// make sure that we're heading in the right direction
+		// boolean toWork = ((MK_7) state).goToWork;
+		// if ((toWork && pathDirection < 0) || (!toWork && pathDirection > 0)) {
+		// flipPath();
+		// }
+		speed = progress(moveRate);
+		currentIndex += speed;
+
+		// check to see if the progress has taken the current index beyond its goal
+		// given the direction of movement. If so, proceed to the next edge
+		if (linkDirection == 1 && currentIndex > endIndex) {
+			Coordinate currentPos = segment.extractPoint(endIndex);
+			updatePosition(currentPos);
+			transitionToNextEdge(currentIndex - endIndex);
+		} else if (linkDirection == -1 && currentIndex < startIndex) {
+			Coordinate currentPos = segment.extractPoint(startIndex);
+			updatePosition(currentPos);
+			transitionToNextEdge(startIndex - currentIndex);
+		} else {
+			// just update the position!
+			Coordinate currentPos = segment.extractPoint(currentIndex);
+
+			updatePosition(currentPos);
+		}
+
+		state.schedule.scheduleOnce(this);
+	}
+
+	private void setActive(MK_7_1 gState) {
+		boolean alreadyActive = false;
+
+		if (MainAgent.active)
+			alreadyActive = true;
+
+		int numActive = 0;
+
+		// Loop through all the agents within vision and count the number of active
+		// civilians
+		// MasonGeometry buffer = new
+		// MasonGeometry(this.location.buffer(osviState.personVision), this);
+		// Bag persons = osviState.persons.getCoveredObjects(buffer);
+		// Bag cops = osviState.cops.getCoveredObjects(buffer);
+		// for(Object person : MainAgent){
+		// MainAgent p = (MainAgent)((MasonGeometry) person).getUserData();
+
+		if (agents.MainAgent.active) {
+			numActive++;
+		}
+		// }
+
+		/* Calculations for going active */
+		// arrestProbability = 1 - Math.exp(-2.3*((cops.size()/(numActive+1))));
+		// grievance = perceivedHardship * (1 - govtLegitimacy);
+		// this.active = (grievance - (riskAversion * arrestProbability)) >
+		// osviState.threshold;
+
+		if (!alreadyActive && this.active) {
+			gState.activeCount++;
+			activated = true;
+		} else if (alreadyActive && !this.active) {
 			gState.activeCount--;
 		}
 	}
 
-   /**
-    * ////////////////////////// Flip Agent's Route //////////////////////////////
-    * Flip the agent's path around
-    */
-   public void flipPath()	{
-       reachedGoal = false;
-       homebound = false;
-       status = Status.INBOUND;
-       System.out.println(this + " is " +status);
-       this.timeSinceDeparted = 0;
-       
-       pathDirection = -pathDirection;
-       linkDirection = -linkDirection;
-   }
+	/**
+	 * ////////////////////////// Flip Agent's Route //////////////////////////////
+	 * Flip the agent's path around
+	 */
+	public void flipPath() {
+		distributing = false;
+		inbound = false;
+		status = Status.INBOUND;
+		System.out.println(this + " is " + status);
+		this.timeSinceDeparted = 0;
 
-   /**
-    * ////////////////////////// Move Agent to Next Edge /////////////////////////
-    * Transition to the next edge in the path
-    * @param residualMove the amount of distance the agent can still travel
-    * this turn
-    */
-   void transitionToNextEdge(double residualMove)	{
+		pathDirection = -pathDirection;
+		linkDirection = -linkDirection;
+	}
 
-       // update the counter for where the index on the path is
-       indexOnPath += pathDirection;
+	/**
+	 * ////////////////////////// Move Agent to Next Edge /////////////////////////
+	 * Transition to the next edge in the path
+	 * 
+	 * @param residualMove
+	 *            the amount of distance the agent can still travel this turn
+	 */
+	void transitionToNextEdge(double residualMove) {
 
-       // check to make sure the Agent has not reached the end
-       // of the path already
-       if ((pathDirection > 0 && indexOnPath >= pathFromHQToLSOA.size())
-               || (pathDirection < 0 && indexOnPath < 0))
-    	   		// depends on where you're going!
-       {
-    	   status = Status.OUTBOUND;
-           reachedGoal = true;
-           homebound = true;
-           System.out.println(this + " is " +status);
-           indexOnPath -= pathDirection; // make sure index is correct
-           return;
-       }
+		// update the counter for where the index on the path is
+		indexOnPath += pathDirection; // indexOnPath = indexOnPath + pathDirection
 
-       // move to the next edge in the path
-       GeomPlanarGraphEdge edge = (GeomPlanarGraphEdge)
-    		   pathFromHQToLSOA.get(indexOnPath).getEdge();
-       setupEdge(edge);
-       speed = progress(residualMove);
-       currentIndex += speed;
+		// check to make sure the Agent has not reached the end
+		// of the path already
+		if ((pathDirection > 0 && indexOnPath >= pathFromHQToLSOA.size()) || (pathDirection < 0 && indexOnPath < 0))
+		// if pathDirection GREATER 0 AND indexOnPath EQUAL or GREATER pathFromHQToLSOA.size OR pathDirection LESS 0 AND indexOnPath LESS 0
+		// depends on where you're going!
+		{
+			status = Status.OUTBOUND;
+			distributing = true;
+			inbound = true;
+			System.out.println(this + " is " + status);
+			indexOnPath -= pathDirection; // make sure index is correct
+			return;
+		}
 
-       // check to see if the progress has taken the current index beyond its goal
-       // given the direction of movement. If so, proceed to the next edge
-       if (linkDirection == 1 && currentIndex > endIndex)	{
-           transitionToNextEdge(currentIndex - endIndex);
-       } else if (linkDirection == -1 && currentIndex < startIndex)	{
-           transitionToNextEdge(startIndex - currentIndex);
-       }
-   }
+		// move to the next edge in the path
+		GeomPlanarGraphEdge edge = (GeomPlanarGraphEdge) pathFromHQToLSOA.get(indexOnPath).getEdge();
+		setupEdge(edge);
+		speed = progress(residualMove);
+		currentIndex += speed;
 
-   /**
-    * ////////////////////////// Agent's Route Info //////////////////////////////
-    * Sets the Agent up to proceed along an Edge
-    * @param edge the GeomPlanarGraphEdge to traverse next
-    */
-   void setupEdge(GeomPlanarGraphEdge edge)	{
+		// check to see if the progress has taken the current index beyond its goal
+		// given the direction of movement. If so, proceed to the next edge
+		if (linkDirection == 1 && currentIndex > endIndex) {
+			transitionToNextEdge(currentIndex - endIndex);
+		} else if (linkDirection == -1 && currentIndex < startIndex) {
+			transitionToNextEdge(startIndex - currentIndex);
+		}
+	}
 
-       // clean up on old edge
-       if (currentEdge != null)	{
-           ArrayList<MainAgent> traffic = world.edgeTraffic.get(currentEdge);
-           traffic.remove(this);
-       }
-       currentEdge = edge;
+	/**
+	 * ////////////////////////// Agent's Route Info //////////////////////////////
+	 * Sets the Agent up to proceed along an Edge
+	 * 
+	 * @param edge
+	 *            the GeomPlanarGraphEdge to traverse next
+	 */
+	void setupEdge(GeomPlanarGraphEdge edge) {
 
-       // update new edge traffic
-       if (world.edgeTraffic.get(currentEdge) == null)	{
-           world.edgeTraffic.put(currentEdge, new ArrayList<MainAgent>());
-       }
-       world.edgeTraffic.get(currentEdge).add(this);
+		// clean up on old edge
+		if (currentEdge != null) {
+			ArrayList<MainAgent> traffic = world.edgeTraffic.get(currentEdge);
+			traffic.remove(this);
+		}
+		currentEdge = edge;
 
-       // set up the new segment and index info
-       LineString line = edge.getLine();
-       segment = new LengthIndexedLine(line);
-       startIndex = segment.getStartIndex();
-       endIndex = segment.getEndIndex();
-       linkDirection = 1;
+		// update new edge traffic
+		if (world.edgeTraffic.get(currentEdge) == null) {
+			world.edgeTraffic.put(currentEdge, new ArrayList<MainAgent>());
+		}
+		world.edgeTraffic.get(currentEdge).add(this);
 
-       // check to ensure that Agent is moving in the right direction
-       double distanceToStart = line.getStartPoint().distance(location.geometry),
-           distanceToEnd = line.getEndPoint().distance(location.geometry);
-       if (distanceToStart <= distanceToEnd)	{ // closer to start
-           currentIndex = startIndex;
-           linkDirection = 1;
-       } else if (distanceToEnd < distanceToStart)	{ // closer to end
-           currentIndex = endIndex;
-           linkDirection = -1;
-       }
-   }
+		// set up the new segment and index info
+		LineString line = edge.getLine();
+		segment = new LengthIndexedLine(line);
+		startIndex = segment.getStartIndex();
+		endIndex = segment.getEndIndex();
+		linkDirection = 1;
 
-   /**
-    * ////////////////////////// Move Agent //////////////////////////////////////
-    * Move the agent to the given coordinates
-    */
-   public void updatePosition(Coordinate c)	{
-       pointMoveTo.setCoordinate(c);
-       // location.geometry.apply(pointMoveTo);
+		// check to ensure that Agent is moving in the right direction
+		double distanceToStart = line.getStartPoint().distance(location.geometry),
+				distanceToEnd = line.getEndPoint().distance(location.geometry);
+		if (distanceToStart <= distanceToEnd) { // closer to start
+			currentIndex = startIndex;
+			linkDirection = 1;
+		} else if (distanceToEnd < distanceToStart) { // closer to end
+			currentIndex = endIndex;
+			linkDirection = -1;
+		}
+	}
 
-       world.agents.setGeometryLocation(location, pointMoveTo);
-   }
-   
-   /**
-    * ////////////////////////// Agent's Location ////////////////////////////////
-    * Return geometry representing agent location
-    */
-   public MasonGeometry getGeometry()	{
-       return location;
-   }
+	/**
+	 * ////////////////////////// Move Agent //////////////////////////////////////
+	 * Move the agent to the given coordinates
+	 */
+	public void updatePosition(Coordinate c) {
+		pointMoveTo.setCoordinate(c);
+		// location.geometry.apply(pointMoveTo);
+
+		world.agents.setGeometryLocation(location, pointMoveTo);
+	}
+
+	/**
+	 * ////////////////////////// Agent's Location ////////////////////////////////
+	 * Return geometry representing agent location
+	 */
+	public MasonGeometry getGeometry() {
+		return location;
+	}
 }
