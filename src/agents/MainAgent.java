@@ -50,7 +50,7 @@ public final class MainAgent implements Steppable	{
 
     MK_7_1 world;
     // Residence/Goal/Status Attributes
-    public Status status = Status.REPLENISHING;
+    public Status status = null;
     public int timeSinceDeparted = 0;
     public boolean homebound = false;
     public boolean reachedGoal = false;
@@ -92,6 +92,7 @@ public final class MainAgent implements Steppable	{
     PointMoveTo pointMoveTo = new PointMoveTo();
 
     static private GeometryFactory fact = new GeometryFactory();
+    public ArrayList <String> recordOfTrips = new ArrayList <String> ();
 
     /**
 	 * //////////////////////// Model Constructor ////////////////////////////////
@@ -226,7 +227,7 @@ public final class MainAgent implements Steppable	{
            		+ "access the given goal.");
            return false;
        } else	{
-    	   System.out.println(homeTract + " has a new A* path...");
+    	   System.out.println("Agent has a new A* path...");
            return true;
        }
    }
@@ -279,7 +280,7 @@ public final class MainAgent implements Steppable	{
     * ////////////////////////// Step to Move Agent //////////////////////////////
     * Called every tick by the scheduler.
     * Moves the agent along the path.
- * @param <osviInGeo>
+    * @param <osviInGeo>
     */
    public void step(SimState state)	{
 	   MK_7_1 gstate = (MK_7_1) state;
@@ -295,13 +296,16 @@ public final class MainAgent implements Steppable	{
     	   setActive(gstate);
            System.out.println(this + " is " +status);
            
-           
            //////////////////////////////////////////////
            //////NEED TO DROP GOODS, CHANGE STATUS///////
            //////////////////////////////////////////////
            
-           
+    	   recordOfTrips.add(this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCoordinate().toString());
+    	   
            flipPath();
+           state.schedule.scheduleOnce(state.schedule.getTime() + 50, this);	// makes Agent wait 
+      
+           return;
        }
        
        // make sure that we're heading in the right direction
@@ -329,6 +333,8 @@ public final class MainAgent implements Steppable	{
 
            updatePosition(currentPos);
        }
+       
+       state.schedule.scheduleOnce(this);
    }
    
    private void setActive(MK_7_1 gState){
@@ -372,9 +378,10 @@ public final class MainAgent implements Steppable	{
    public void flipPath()	{
        reachedGoal = false;
        homebound = false;
-       status = Status.OUTBOUND;
+       status = Status.INBOUND;
        System.out.println(this + " is " +status);
        this.timeSinceDeparted = 0;
+       
        pathDirection = -pathDirection;
        linkDirection = -linkDirection;
    }
@@ -396,7 +403,7 @@ public final class MainAgent implements Steppable	{
                || (pathDirection < 0 && indexOnPath < 0))
     	   		// depends on where you're going!
        {
-    	   status = Status.INBOUND;
+    	   status = Status.OUTBOUND;
            reachedGoal = true;
            homebound = true;
            System.out.println(this + " is " +status);

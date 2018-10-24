@@ -81,6 +81,7 @@ public class MK_7_1 extends SimState	{
 
     // Model ArrayLists for agents and OSVI Polygons
     ArrayList<agents.MainAgent> agentList = new ArrayList<agents.MainAgent>();
+    ArrayList<Integer> assignedWards = new ArrayList<Integer>();
     ArrayList<Polygon> polys = new ArrayList<Polygon>();
     ArrayList<String> csvData = new ArrayList<String>();
 
@@ -141,9 +142,8 @@ public class MK_7_1 extends SimState	{
 
         try {
             // read in the roads shapefile to create the transit network
-        	URL roadsFile = MK_7_1.class.getResource
-        			("/data/GL_ITN_MultipartToSinglepart.shp");
-            ShapeFileImporter.read(roadsFile, roads);
+        	File roadsFile = new File("data/GL_ITN_MultipartToSinglepart.shp");
+            ShapeFileImporter.read(roadsFile.toURI().toURL(), roads);
             System.out.println("	Roads shapefile: " +roadsFile);
 
             Envelope MBR = roads.getMBR();
@@ -160,25 +160,22 @@ public class MK_7_1 extends SimState	{
 	        //   catch (FileNotFoundException ex){
 	        //   	}
 
-            URL wardsFile = MK_7_1.class.getResource
-            		("/data/GloucestershireFinal_LSOA.shp");
-            ShapeFileImporter.read(wardsFile, world, Polygon.class);
+            File wardsFile = new File("data/GloucestershireFinal_LSOA1.shp");
+            ShapeFileImporter.read(wardsFile.toURI().toURL(), world, Polygon.class);
             System.out.println("	OSVI shapefile: " +wardsFile);
 
             MBR.expandToInclude(world.getMBR());
 
             // read in the FZ3 file
-            URL flood3File = MK_7_1.class.getResource
-            		("/data/Gloucestershire_FZ_3.shp");
-            ShapeFileImporter.read(flood3File, flood3);
+            File flood3File = new File("data/Gloucestershire_FZ_3.shp");
+            ShapeFileImporter.read(flood3File.toURI().toURL(), flood3);
             System.out.println("	FZ3 shapefile: " +flood3File);
 
             MBR.expandToInclude(flood3.getMBR());
 
             // read in the FZ2 file
-            URL flood2File = MK_7_1.class.getResource
-            		("/data/Gloucestershire_FZ_2.shp");
-            ShapeFileImporter.read(flood2File, flood2);
+            File flood2File = new File("data/Gloucestershire_FZ_2.shp");
+            ShapeFileImporter.read(flood2File.toURI().toURL(), flood2);
             System.out.println("	FZ2 shapefile: " +flood2File);
 
             MBR.expandToInclude(flood2.getMBR());
@@ -198,8 +195,8 @@ public class MK_7_1 extends SimState	{
             //////////////////////////////////////////////////////////////////////
 
             // initialize agents using the following source .CSV files
-            agentGoals("/data/GloucestershireAgentGoals.csv");
-            populateAgent("/data/GloucestershireITNAGENT.csv");
+            //agentGoals("data/GloucestershireAgentGoals.csv");
+            populateAgent("data/GloucestershireITNAGENT.csv");
 
             System.out.println();
             System.out.println("Starting simulation...");
@@ -267,8 +264,17 @@ public class MK_7_1 extends SimState	{
 	 */
     public void finish()	{
     	super.finish();
+    	
     	System.out.println();
     	System.out.println("Simulation ended by user.");
+    	
+    	System.out.println();
+    	System.out.println("///////////////////\nOUTPUTTING FINAL STUFFS\n//////////////////");
+    	
+    	for(MainAgent a: agentList) {
+    		for(String s: a.recordOfTrips)
+    			System.out.println(s);
+    	}
     }
 
     /**
@@ -330,6 +336,35 @@ public class MK_7_1 extends SimState	{
 		return csvData;
 	}
 
+	int getLargestUnassignedWard() {
+        Bag myGeoms = world.getGeometries();
+        
+        int highest = -1;
+        MasonGeometry myCopy = null;
+        
+        for(Object o: myGeoms) {
+        	MasonGeometry mg = (MasonGeometry) o;
+        	int id = mg.getIntegerAttribute("ID");
+        	if(assignedWards.contains(id))
+        		continue;
+        	
+        	int temp = mg.getIntegerAttribute("L_GL_OSVI_");
+        	if (temp > highest) {
+        		highest = temp;
+        		myCopy = mg;
+        	}
+        		
+        }
+        
+        // TODO make sure myCopy isn't null!!!
+        
+        int id = myCopy.getIntegerAttribute("ID");
+        assignedWards.add(id);
+        System.out.println();
+        System.out.println("OSVI Raiting of goalTract: = " + myCopy.getIntegerAttribute("L_GL_OSVI_"));
+        return myCopy.getIntegerAttribute("ROAD_ID_1");
+	}
+	
     /**
      * //////////////////////// Setup mainAgent //////////////////////////////////
      * Read in the population files and create appropriate populations
@@ -337,14 +372,15 @@ public class MK_7_1 extends SimState	{
      */
     public void populateAgent(String filename)	{
         try	{
-            String filePath = MK_7_1.class.getResource(filename).getPath();
-            FileInputStream fstream = new FileInputStream(filePath);
+        //    String filePath = MK_7_1.class.getResource(filename).getPath();
+            FileInputStream fstream = new FileInputStream(filename);
             System.out.println();
-            System.out.println("Populating model with Agents: " +filePath);
+            System.out.println("Populating model with Agents from: " +filename);
 
             BufferedReader d = new BufferedReader(new InputStreamReader(fstream));
             String s;
 
+            
             // get rid of the header
             d.readLine();
             // read in all data
@@ -362,15 +398,15 @@ public class MK_7_1 extends SimState	{
                 String ROAD_ID = bits[3];
 
                 Random randomiser = new Random();
-                String random = csvData.get(new Random().nextInt(csvData.size()));
-                String goalTract = random;
-                System.out.println();
-                System.out.println("Agent goalTract: " +goalTract);
+                int random = getLargestUnassignedWard();
+                //String random = csvData.get(new Random().nextInt(csvData.size()));
+                //String goalTract = random;
+                System.out.println("Agent goalTract: " +random);//goalTract);
 
                 GeomPlanarGraphEdge startingEdge = idsToEdges.get(
                         (int) Double.parseDouble(ROAD_ID));
                 GeomPlanarGraphEdge goalEdge = idsToEdges.get(
-                        (int) Double.parseDouble(goalTract));
+                        random);//(int) Double.parseDouble(goalTract));
                 		//reads the .CSV column
                 		//goals[ random.nextInt(goals.length)]);
                 		// uses the hardcoded 'goals' from above
@@ -395,12 +431,13 @@ public class MK_7_1 extends SimState	{
                     newGeometry.isMovable = true;
                     agents.addGeometry(newGeometry);
                     agentList.add(a);
-                    schedule.scheduleRepeating(a);
+                    schedule.scheduleOnce(a);
                 }
             }
 
             d.close();
-            System.out.println("Agents added successfully!");
+            System.out.println();
+            System.out.println("All Agents added successfully!");
         } catch (Exception e) {
 		    	System.out.println("ERROR: issue with population file: ");
 				e.printStackTrace();

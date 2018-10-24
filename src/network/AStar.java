@@ -168,7 +168,7 @@ public class AStar {
      * @return
      */
     AStarNodeWrapper findMin(ArrayList<AStarNodeWrapper> set)	{
-    	System.out.println("Finding minimum route...");
+    	//System.out.println("Finding minimum route...");
         double min = 100000;
         AStarNodeWrapper minNode = null;
         for (AStarNodeWrapper n : set)	{

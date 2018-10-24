@@ -179,6 +179,7 @@ public class MK_7_1WithUI extends GUIState	{
             flood3Portrayal.setField(world.flood3);
             flood3Portrayal.setPortrayalForAll(new GeomPortrayal
             		(Color.CYAN, true));
+            flood3Portrayal.setImmutableField(true);
             flood2Portrayal.setField(world.flood2);
             flood2Portrayal.setPortrayalForAll(new GeomPortrayal
             		(Color.BLUE, true));
