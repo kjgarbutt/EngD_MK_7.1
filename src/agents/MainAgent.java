@@ -287,10 +287,8 @@ public final class MainAgent implements Steppable {
 		if (segment == null) {
 			return;
 		}
-		else if (segment != null && currentJunction = destinationJunction) {
+		//else if (segment != null && currentJunction = destinationJunction) {
 
-			
-		}
 		// check that we haven't already reached our destination
 		else if (distributing) {
 			status = Status.DISTRIBUTING;
