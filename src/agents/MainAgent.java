@@ -56,8 +56,6 @@ public final class MainAgent implements Steppable {
 	public boolean outbound = false;
 	public boolean distributing = false;
 	public boolean replenishing = false;
-	public static final int waiting_Period = 100;
-	public int waiting = waiting_Period;
 	public int resources_Available = 0;
 	public int resources_Distributed = 0;
 	public int resources_Capacity = 0;
@@ -91,8 +89,8 @@ public final class MainAgent implements Steppable {
 	double currentIndex = 0.0; // current location along line
 	GeomPlanarGraphEdge currentEdge = null;
 	String type = "";
-	private Color inboundColor = Color.black;
-	private Color outboundColor = Color.red;
+	//private Color inboundColor = Color.black;
+	//private Color outboundColor = Color.red;
 	int linkDirection = 1;
 	public double speed = 0; // useful for graph
 	ArrayList<GeomPlanarGraphDirectedEdge> pathFromHQToLSOA = new ArrayList<GeomPlanarGraphDirectedEdge>();
@@ -281,10 +279,11 @@ public final class MainAgent implements Steppable {
 	 * @param <osviInGeo>
 	 */
 	public void step(SimState state) {
-		MK_7_1 gstate = (MK_7_1) state;
+		//MK_7_1 gstate = (MK_7_1) state;
 		
 		// check that we've been placed on an Edge
 		if (segment == null) {
+			System.out.println(this + " segment == null");
 			return;
 		}
 		//else if (segment != null && currentJunction = destinationJunction) {
@@ -292,7 +291,7 @@ public final class MainAgent implements Steppable {
 		// check that we haven't already reached our destination
 		else if (distributing) {
 			status = Status.DISTRIBUTING;
-			setActive(gstate);
+			//setActive(gstate);
 			System.out.println(this + " is " + status);
 		
 			//////////////////////////////////////////////
@@ -304,7 +303,7 @@ public final class MainAgent implements Steppable {
 					this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCentroid().toString());
 
 			flipPath();
-			state.schedule.scheduleOnce(state.schedule.getTime() + 50, this); // makes Agent wait
+			state.schedule.scheduleOnce(state.schedule.getTime() + 50, this); // makes Agent wait before flipping route
 
 			return;
 		}
