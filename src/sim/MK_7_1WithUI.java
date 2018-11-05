@@ -17,7 +17,7 @@ import sim.portrayal.DrawInfo2D;
 import sim.portrayal.geo.GeomPortrayal;
 import sim.portrayal.geo.GeomVectorFieldPortrayal;
 import sim.util.media.chart.TimeSeriesChartGenerator;
-import agents.MainAgent;
+import agents.Agent;
 
 /**
 *
@@ -78,7 +78,7 @@ public class MK_7_1WithUI extends GUIState	{
     	sim.MK_7_1 world = (sim.MK_7_1) state;
 
         // the polygon portrayal
-        polyPortrayal.setField(world.world);
+        polyPortrayal.setField(world.baseLayer);
         polyPortrayal.setPortrayalForAll(new PolyPortrayal());
 
         display.reset();
@@ -143,7 +143,7 @@ public class MK_7_1WithUI extends GUIState	{
                 	sim.MK_7_1 world = (sim.MK_7_1) state;
                     double maxS = 0, minS = 10000, avgS = 0, count = 0;
                     //////////////////////////// Main Agent //////////////////////
-                    for (MainAgent a : world.agentList)	{
+                    for (Agent a : world.agentList)	{
                         if (a.distributing)	{
                             continue;
                         }
@@ -173,7 +173,7 @@ public class MK_7_1WithUI extends GUIState	{
             roadsPortrayal.setField(world.roads);
             roadsPortrayal.setPortrayalForAll(new GeomPortrayal
             		(Color.DARK_GRAY, 0.0005, false));
-            polyPortrayal.setField(world.world);
+            polyPortrayal.setField(world.baseLayer);
             polyPortrayal.setPortrayalForAll(new PolyPortrayal());
             flood3Portrayal.setField(world.flood3);
             flood3Portrayal.setPortrayalForAll(new GeomPortrayal
@@ -182,7 +182,7 @@ public class MK_7_1WithUI extends GUIState	{
             flood2Portrayal.setField(world.flood2);
             flood2Portrayal.setPortrayalForAll(new GeomPortrayal
             		(Color.BLUE, true));
-            agentPortrayal.setField(world.agents);
+            agentPortrayal.setField(world.agentsLayer);
             agentPortrayal.setPortrayalForAll(new GeomPortrayal
             		(Color.MAGENTA, 150, true));
             //agentPortrayal.setPortrayalForAll(new GeomPortrayal());

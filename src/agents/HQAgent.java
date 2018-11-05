@@ -48,7 +48,7 @@ import com.vividsolutions.jts.planargraph.Node;
 public class HQAgent implements Steppable	{
     
 		MK_7_1 world;
-    	ArrayList<agents.MainAgent> agentList = new ArrayList<agents.MainAgent>();
+    	ArrayList<agents.Agent> agentList = new ArrayList<agents.Agent>();
     	public String name;
     	public SchoolType type;
     	public boolean closed = false;
@@ -59,20 +59,20 @@ public class HQAgent implements Steppable	{
     		Student s;
     		do
             {
-                s = MainAgent.get(world.random.nextInt(MainAgent.size()));
+                s = Agent.get(world.random.nextInt(Agent.size()));
             } while (!(!s.homebound && (s != butNotThisStudent)));
     		
     		return s;
     	}
     	
     	public double getProportionOfSickStudents() {
-    		if (MainAgent.isEmpty())
+    		if (Agent.isEmpty())
             {
                 return 0;
             }
     		
     		int sick = 0;
-    		for (Student s : MainAgent)
+    		for (Student s : Agent)
             {
                 if (s.status == Status.INFECTED)
                 {
@@ -80,17 +80,17 @@ public class HQAgent implements Steppable	{
                 }
             }
     		
-    		return sick / (double)MainAgent.size();
+    		return sick / (double)Agent.size();
     	}
     	
     	public double getProportionOfInboundAgents() {
-    		if (MainAgent.isEmpty())
+    		if (Agent.isEmpty())
             {
                 return 0;
             }
     		
     		int homebound = 0;
-    		for (Student s : MainAgent)
+    		for (Student s : Agent)
             {
                 if (s.homebound)
                 {
@@ -98,7 +98,7 @@ public class HQAgent implements Steppable	{
                 }
             }
     		
-    		return homebound / (double)MainAgent.size();
+    		return homebound / (double)Agent.size();
     	}
     	
     	@Override
@@ -109,7 +109,7 @@ public class HQAgent implements Steppable	{
             }
     		
     		int inAttendence = 0;
-    		for (Student s : MainAgent)
+    		for (Student s : Agent)
             {
                 if (!s.homebound)
                 {
