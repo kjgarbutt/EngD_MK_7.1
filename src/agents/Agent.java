@@ -130,7 +130,9 @@ public final class Agent extends TrafficAgent implements Steppable {
 	//////////////////////////////// AGENT /////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////
 
-	public GeoNode getNode() {return node;}
+	public GeoNode getNode() {
+		return node;
+	}
 
 	/**
 	 * //////////////////////// Default Wrapper Constructor ///////////////////////
@@ -283,11 +285,10 @@ public final class Agent extends TrafficAgent implements Steppable {
 			return;
 		}
 		// if the Agent is travelling but has no route,
-		else if(currentActivity == activity_travel && segment == null) {
-			
+		else if (currentActivity == activity_travel && segment == null) {
+
 		}
-		
-		
+
 	}
 
 	/**
@@ -330,10 +331,11 @@ public final class Agent extends TrafficAgent implements Steppable {
 		////////// Initial Checks //////////////////////////////
 
 		// make sure the Agent is only being called once per tick
-		
-		if (lastMove >= state.schedule.getTime()) { System.out.println(this +
-		"is being called too often!. " + "WHY??? EVERYBODY PANIC!!!"); return; }
-		
+
+		if (lastMove >= state.schedule.getTime()) {
+			System.out.println(this + "is being called too often!. " + "WHY??? EVERYBODY PANIC!!!");
+			return;
+		}
 
 		// check that Agent has been placed on an Edge
 		if (segment == null) {
@@ -352,11 +354,11 @@ public final class Agent extends TrafficAgent implements Steppable {
 
 		if (location.geometry.getCoordinate() != goalNode.getCoordinate()
 				|| location.geometry.getCoordinate() != headquartersNode.getCoordinate()) {
-			//System.out.println(this + " is travelling.");
+			// System.out.println(this + " is travelling.");
 			distributing = false;
 			inbound = false;
 			status = Status.INBOUND;
-			//System.out.println(this + " is " + status);
+			// System.out.println(this + " is " + status);
 		}
 
 		// check that we haven't already reached our destination
@@ -366,13 +368,19 @@ public final class Agent extends TrafficAgent implements Steppable {
 			// setActive(gstate);
 			System.out.println(this + " is " + status + location);
 
-			//////////////////////////////////////////////
-			////// NEED TO DROP GOODS, CHANGE STATUS /////
-			//////////////////////////////////////////////
+			//////////////////////////////////////////////////
+			////// TODO CHANGE STATUS TO DISTRIBUTING   ////// 
+			//////      DROP GOODS, DECREASE UNIT SCORE ////// 
+			//////////////////////////////////////////////////
 
 			recordOfTrips.add(
 					this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCentroid().toString());
 
+			////////////////////////////////////////////////////////////////
+			////// TODO RECORD VISITED GOAL AND MAKE IT AVAILABLE TO ///////
+			//////      getLargestUnassignedWard()                  ////////
+			////////////////////////////////////////////////////////////////
+			
 			flipPath();
 			state.schedule.scheduleOnce(state.schedule.getTime() + 50, this);
 			// makes Agent wait before flipping route
@@ -504,7 +512,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 		}
 		// find the appropriate A* path between them
 		AStar pathfinder = new AStar();
-		ArrayList<Edge> path = pathfinder.astarPath(currentJunction, destinationJunction, network);
+		ArrayList<Edge> path = pathfinder.astarPath(currentJunction, destinationJunction, roadNetwork);
 
 		// if the path works, lay it in
 		if (path != null && path.size() > 0) {
@@ -606,7 +614,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 			status = Status.OUTBOUND;
 			distributing = true;
 			inbound = true;
-			//System.out.println(this + " is " + status);
+			// System.out.println(this + " is " + status);
 			indexOnPath -= pathDirection; // make sure index is correct
 			return;
 		}

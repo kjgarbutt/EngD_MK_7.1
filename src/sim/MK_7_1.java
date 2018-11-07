@@ -64,8 +64,8 @@ public class MK_7_1 extends SimState {
 
 	private static final long serialVersionUID = -4554882816749973618L;
 	public static double resolution = 5;// the granularity of the simulation
-		// (fiddle around with this to merge nodes into one another)
-	
+	// (fiddle around with this to merge nodes into one another)
+
 	///////////////////////////// Containers /////////////////////////////////////
 	public GeomVectorField baseLayer = new GeomVectorField();
 	public GeomVectorField roads = new GeomVectorField();
@@ -81,17 +81,18 @@ public class MK_7_1 extends SimState {
 	HashMap<Integer, GeomPlanarGraphEdge> idsToEdges = new HashMap<Integer, GeomPlanarGraphEdge>();
 	public HashMap<GeomPlanarGraphEdge, ArrayList<agents.Agent>> edgeTraffic = new HashMap<GeomPlanarGraphEdge, ArrayList<agents.Agent>>();
 	public GeomVectorField mainagents = new GeomVectorField();
-	
+
 	///////////////////////////// Objects ////////////////////////////////////////
 	public GeometryFactory fa = new GeometryFactory();
-	
+
 	long mySeed = 0;
-	
+
 	Envelope MBR = null;
 
 	// Model ArrayLists for agents and OSVI Polygons
 	ArrayList<agents.Agent> agentList = new ArrayList<agents.Agent>();
 	ArrayList<Integer> assignedWards = new ArrayList<Integer>();
+	ArrayList<Integer> visitedWards = new ArrayList<Integer>(); // TODO record visited LSOAs
 	ArrayList<Polygon> polys = new ArrayList<Polygon>();
 	ArrayList<String> csvData = new ArrayList<String>();
 
@@ -106,16 +107,14 @@ public class MK_7_1 extends SimState {
 	}
 
 	/*
-	//Need to actually utilise this somewhere
-	public static double temporalResolution_minutesPerTick = 1;//5; // minute per tick
-	public double param_defaultSpeed = 200 *
-	MK_7_1.temporalResolution_minutesPerTick;
-	public double param_topSpeed = 1000 *
-	MK_7_1.temporalResolution_minutesPerTick;
-	public int param_reportTimeCommitment = (int)(60 /
-	temporalResolution_minutesPerTick);
-	public int param_responseCarTimeCommitment = (int)(60 /
-	temporalResolution_minutesPerTick);
+	 * //Need to actually utilise this somewhere public static double
+	 * temporalResolution_minutesPerTick = 1;//5; // minute per tick public double
+	 * param_defaultSpeed = 200 * MK_7_1.temporalResolution_minutesPerTick; public
+	 * double param_topSpeed = 1000 * MK_7_1.temporalResolution_minutesPerTick;
+	 * public int param_reportTimeCommitment = (int)(60 /
+	 * temporalResolution_minutesPerTick); public int
+	 * param_responseCarTimeCommitment = (int)(60 /
+	 * temporalResolution_minutesPerTick);
 	 */
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -148,11 +147,11 @@ public class MK_7_1 extends SimState {
 	@Override
 	public void start() {
 		super.start();
-		
+
 		System.out.println();
 		System.out.println("////////////////\nINPUTTING STUFFS\n////////////////");
 		System.out.println();
-		
+
 		System.out.println("Reading shapefiles...");
 
 		//////////////////////////////////////////////////////////////////////////
@@ -163,23 +162,19 @@ public class MK_7_1 extends SimState {
 			File wardsFile = new File("data/GloucestershireFinal_LSOA1.shp");
 			ShapeFileImporter.read(wardsFile.toURI().toURL(), baseLayer, Polygon.class);
 			System.out.println("	OSVI shapefile: " + wardsFile);
-			
+
 			// read in the roads shapefile to create the transit network
 			File roadsFile = new File("data/GL_ITN_MultipartToSinglepart.shp");
 			ShapeFileImporter.read(roadsFile.toURI().toURL(), roads);
 			System.out.println("	Roads shapefile: " + roadsFile);
 
 			/*
-			// read in the LSOA shapefile to create the backgrounds
-			URL areasFile = MK_4.class.getResource ("/data/Final_LSOA.shp");
-			Bag desiredAttributes = new Bag();
-			desiredAttributes.add("RC_RankCol");
-			try {
-				ShapeFileImporter.read(areasFile, world, desiredAttributes);
-			}
-				catch (FileNotFoundException ex){
-			}
-			*/
+			 * // read in the LSOA shapefile to create the backgrounds URL areasFile =
+			 * MK_4.class.getResource ("/data/Final_LSOA.shp"); Bag desiredAttributes = new
+			 * Bag(); desiredAttributes.add("RC_RankCol"); try {
+			 * ShapeFileImporter.read(areasFile, world, desiredAttributes); } catch
+			 * (FileNotFoundException ex){ }
+			 */
 
 			// read in the FZ3 file
 			File flood3File = new File("data/Gloucestershire_FZ_3.shp");
@@ -192,11 +187,11 @@ public class MK_7_1 extends SimState {
 			System.out.println("	FZ2 shapefile: " + flood2File);
 
 			createNetwork();
-			
-            System.out.println("Setting up OSVI Portrayals...");
-        	System.out.println();
-			
-        	setup();
+
+			System.out.println("Setting up OSVI Portrayals...");
+			System.out.println();
+
+			setup();
 
 			//////////////////////////////////////////////////////////////////////
 			/////////////////////////// CLEANUP //////////////////////////////////
@@ -204,7 +199,7 @@ public class MK_7_1 extends SimState {
 
 			// clear any existing agents from previous runs
 			agentsLayer.clear();
-			
+
 			// standardize the MBRs so that the visualization lines up
 			// and everyone knows what the standard MBR is
 			MBR = baseLayer.getMBR();
@@ -251,9 +246,6 @@ public class MK_7_1 extends SimState {
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: missing required data file");
 		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -336,36 +328,44 @@ public class MK_7_1 extends SimState {
 	}
 
 	int getLargestUnassignedWard() {
-		Bag myGeoms = baseLayer.getGeometries();
+		Bag lsoaGeoms = baseLayer.getGeometries();
 
-		int highest = -1;
+		int highestOSVI = -1;
 		MasonGeometry myCopy = null;
 
-		for (Object o : myGeoms) {
-			MasonGeometry mg = (MasonGeometry) o;
-			int id = mg.getIntegerAttribute("ID");
+		for (Object o : lsoaGeoms) {
+			MasonGeometry masonGeometry = (MasonGeometry) o;
+			int id = masonGeometry.getIntegerAttribute("ID");
 			if (assignedWards.contains(id))
 				continue;
 
-			int temp = mg.getIntegerAttribute("L_GL_OSVI_");
-			if (temp > highest) {
-				highest = temp;
-				myCopy = mg;
+			int tempOSVI = masonGeometry.getIntegerAttribute("L_GL_OSVI_");
+			// temp = the attribute in the "L_GL_OSVI_" column (int for each LSOA OSVI)
+			if (tempOSVI > highestOSVI) { // if temp is higher than highest
+				highestOSVI = tempOSVI; // update highest to temp
+				myCopy = masonGeometry; // update myCopy to the
+			}
+
+			if (myCopy == null) {
+				System.out.println("ALERT: LSOA Baselayer is null!");
 			}
 		}
-
-		// TODO make sure myCopy isn't null!!!
+		
+		///////////////////////////////////////////////////////////
+		////// TODO HOW TO STOP myCopy ENDING UP AT NULL??? ///////
+		///////////////////////////////////////////////////////////
 
 		int id = myCopy.getIntegerAttribute("ID");
-		assignedWards.add(id);
+		// id = the attribute in the "ID" column (int for each LSOA)
+		assignedWards.add(id); // add ID to the "assignedWards" ArrayList
 		System.out.println();
-		System.out.println("Highest Rated OSVI Raiting: = " + myCopy.getIntegerAttribute("L_GL_OSVI_"));
-		return myCopy.getIntegerAttribute("ROAD_ID_1");
+		System.out.println("Highest OSVI Raiting: " + myCopy.getIntegerAttribute("L_GL_OSVI_"));
+		return myCopy.getIntegerAttribute("ROAD_ID_1"); // return Road_ID for the chosen LSOA to visit
 	}
 
 	/**
-	 * //////////////////////// Setup Agents //////////////////////////////////
-	 * Read in the population files and create appropriate populations
+	 * //////////////////////// Setup Agents ////////////////////////////////// Read
+	 * in the population files and create appropriate populations
 	 * 
 	 * @param agentsFilename
 	 */
@@ -456,8 +456,8 @@ public class MK_7_1 extends SimState {
 	 *            network.
 	 */
 	private void addIntersectionNodes(Iterator<?> nodeIterator, GeomVectorField intersections) {
-    	System.out.println("Adding Intersection Nodes...");
-    	System.out.println();
+		System.out.println("Adding Intersection Nodes...");
+		System.out.println();
 		GeometryFactory fact = new GeometryFactory();
 		Coordinate coord = null;
 		Point point = null;
@@ -473,129 +473,133 @@ public class MK_7_1 extends SimState {
 			counter++;
 		}
 	}
-	
+
 	/**
-	 * Return the GeoNode in the road network which is closest to the given coordinate
+	 * Return the GeoNode in the road network which is closest to the given
+	 * coordinate
 	 * 
 	 * @param c
 	 * @return
 	 */
-	public GeoNode getClosestGeoNode(Coordinate c){
-		
+	public GeoNode getClosestGeoNode(Coordinate c) {
+
 		// find the set of all nodes within *resolution* of the given point
 		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
-		if(objects == null || roads.getGeometries().size() <= 0) 
+		if (objects == null || roads.getGeometries().size() <= 0)
 			return null; // problem with the network layer
 
 		// among these options, pick the best
 		double bestDist = resolution; // MUST be within resolution to count
 		GeoNode best = null;
-		for(Object o: objects){
-			double dist = ((GeoNode)o).geometry.getCoordinate().distance(c);
-			if(dist < bestDist){
+		for (Object o : objects) {
+			double dist = ((GeoNode) o).geometry.getCoordinate().distance(c);
+			if (dist < bestDist) {
 				bestDist = dist;
-				best = ((GeoNode)o);
+				best = ((GeoNode) o);
 			}
 		}
-		
+
 		// if there is a best option, return that!
-		if(best != null && bestDist == 0) 
+		if (best != null && bestDist == 0)
 			return best;
-		
-		// otherwise, closest GeoNode is associated with the closest Edge, so look for that!
-		
+
+		// otherwise, closest GeoNode is associated with the closest Edge, so look for
+		// that!
+
 		ListEdge edge = getClosestEdge(c);
-		
+
 		// find that edge
-		if(edge == null){
+		if (edge == null) {
 			edge = getClosestEdge(c, resolution * 10);
-			if(edge == null)
+			if (edge == null)
 				return null;
 		}
-		
+
 		// of that edge's endpoints, find the closer of the two and return it
 		GeoNode n1 = (GeoNode) edge.getFrom();
 		GeoNode n2 = (GeoNode) edge.getTo();
-		
-		if(n1.geometry.getCoordinate().distance(c) <= n2.geometry.getCoordinate().distance(c))
+
+		if (n1.geometry.getCoordinate().distance(c) <= n2.geometry.getCoordinate().distance(c))
 			return n1;
-		else 
+		else
 			return n2;
 	}
-	
+
 	/**
-	 * Return the ListEdge in the road network which is closest to the given coordinate
+	 * Return the ListEdge in the road network which is closest to the given
+	 * coordinate
 	 * 
 	 * @param c
 	 * @return
 	 */
-	public ListEdge getClosestEdge(Coordinate c){
-		
+	public ListEdge getClosestEdge(Coordinate c) {
+
 		// find the set of all edges within *resolution* of the given point
 		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
-		if(objects == null || roads.getGeometries().size() <= 0) 
+		if (objects == null || roads.getGeometries().size() <= 0)
 			return null; // problem with the network edge layer
-		
+
 		Point point = fa.createPoint(c);
-		
+
 		// find the closest edge among the set of edges
 		double bestDist = resolution;
 		ListEdge bestEdge = null;
-		for(Object o: objects){
-			double dist = ((MasonGeometry)o).getGeometry().distance(point);
-			if(dist < bestDist){
+		for (Object o : objects) {
+			double dist = ((MasonGeometry) o).getGeometry().distance(point);
+			if (dist < bestDist) {
 				bestDist = dist;
 				bestEdge = (ListEdge) ((AttributeValue) ((MasonGeometry) o).getAttribute("ListEdge")).getValue();
 			}
 		}
-		
+
 		// if it exists, return it
-		if(bestEdge != null)
+		if (bestEdge != null)
 			return bestEdge;
-		
+
 		// otherwise return failure
 		else
 			return null;
 	}
-	
+
 	/**
-	 * Return the ListEdge in the road network which is closest to the given coordinate, within the given resolution
+	 * Return the ListEdge in the road network which is closest to the given
+	 * coordinate, within the given resolution
 	 * 
 	 * @param c
 	 * @param resolution
 	 * @return
 	 */
-	public ListEdge getClosestEdge(Coordinate c, double resolution){
+	public ListEdge getClosestEdge(Coordinate c, double resolution) {
 
 		// find the set of all edges within *resolution* of the given point
 		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
-		if(objects == null || roads.getGeometries().size() <= 0) 
+		if (objects == null || roads.getGeometries().size() <= 0)
 			return null; // problem with the network edge layer
-		
+
 		Point point = fa.createPoint(c);
-		
+
 		// find the closest edge among the set of edges
 		double bestDist = resolution;
 		ListEdge bestEdge = null;
-		for(Object o: objects){
-			double dist = ((MasonGeometry)o).getGeometry().distance(point);
-			if(dist < bestDist){
+		for (Object o : objects) {
+			double dist = ((MasonGeometry) o).getGeometry().distance(point);
+			if (dist < bestDist) {
 				bestDist = dist;
 				bestEdge = (ListEdge) ((AttributeValue) ((MasonGeometry) o).getAttribute("ListEdge")).getValue();
 			}
 		}
-		
+
 		// if it exists, return it
-		if(bestEdge != null)
+		if (bestEdge != null)
 			return bestEdge;
-		
+
 		// otherwise return failure
 		else
 			return null;
 	}
-	
+
 	/** set the seed of the random number generator */
-	void seedRandom(long number){
+	void seedRandom(long number) {
 		random = new MersenneTwisterFast(number);
 		mySeed = number;
 	}
