@@ -24,12 +24,15 @@ import sim.util.Bag;
 import sim.util.geo.GeomPlanarGraph;
 import sim.util.geo.GeomPlanarGraphEdge;
 import sim.util.geo.MasonGeometry;
+import sim.util.geo.AttributeValue;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.planargraph.Node;
+import network.GeoNode;
+import network.ListEdge;
 
 import ec.util.MersenneTwisterFast;
 
@@ -60,7 +63,9 @@ public class MK_7_1 extends SimState {
 	//////////////////////////////////////////////////////////////////////////////
 
 	private static final long serialVersionUID = -4554882816749973618L;
-
+	public static double resolution = 5;// the granularity of the simulation
+		// (fiddle around with this to merge nodes into one another)
+	
 	///////////////////////////// Containers /////////////////////////////////////
 	public GeomVectorField baseLayer = new GeomVectorField();
 	public GeomVectorField roads = new GeomVectorField();
@@ -76,6 +81,11 @@ public class MK_7_1 extends SimState {
 	HashMap<Integer, GeomPlanarGraphEdge> idsToEdges = new HashMap<Integer, GeomPlanarGraphEdge>();
 	public HashMap<GeomPlanarGraphEdge, ArrayList<agents.Agent>> edgeTraffic = new HashMap<GeomPlanarGraphEdge, ArrayList<agents.Agent>>();
 	public GeomVectorField mainagents = new GeomVectorField();
+	
+	///////////////////////////// Objects ////////////////////////////////////////
+	public GeometryFactory fa = new GeometryFactory();
+	
+	long mySeed = 0;
 	
 	Envelope MBR = null;
 
@@ -95,17 +105,18 @@ public class MK_7_1 extends SimState {
 		return goToLSOA;
 	}
 
-	// Need to actually utilise this somewhere
-	// public static double temporalResolution_minutesPerTick = 1;//5; // minutes
-	// per tick
-	// public double param_defaultSpeed = 200 *
-	// MK_7_1.temporalResolution_minutesPerTick;
-	// public double param_topSpeed = 1000 *
-	// MK_7_1.temporalResolution_minutesPerTick;
-	// public int param_reportTimeCommitment = (int)(60 /
-	// temporalResolution_minutesPerTick);
-	// public int param_responseCarTimeCommitment = (int)(60 /
-	// temporalResolution_minutesPerTick);
+	/*
+	//Need to actually utilise this somewhere
+	public static double temporalResolution_minutesPerTick = 1;//5; // minute per tick
+	public double param_defaultSpeed = 200 *
+	MK_7_1.temporalResolution_minutesPerTick;
+	public double param_topSpeed = 1000 *
+	MK_7_1.temporalResolution_minutesPerTick;
+	public int param_reportTimeCommitment = (int)(60 /
+	temporalResolution_minutesPerTick);
+	public int param_responseCarTimeCommitment = (int)(60 /
+	temporalResolution_minutesPerTick);
+	 */
 
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// BEGIN FUNCTIONS //////////////////////////////////
@@ -158,17 +169,17 @@ public class MK_7_1 extends SimState {
 			ShapeFileImporter.read(roadsFile.toURI().toURL(), roads);
 			System.out.println("	Roads shapefile: " + roadsFile);
 
+			/*
 			// read in the LSOA shapefile to create the backgrounds
-			// URL areasFile = MK_4.class.getResource
-			// ("/data/Final_LSOA.shp");
-			// Bag desiredAttributes = new Bag();
-			// desiredAttributes.add("RC_RankCol");
-			//
-			// try {
-			// ShapeFileImporter.read(areasFile, world, desiredAttributes);
-			// }
-			// catch (FileNotFoundException ex){
-			// }
+			URL areasFile = MK_4.class.getResource ("/data/Final_LSOA.shp");
+			Bag desiredAttributes = new Bag();
+			desiredAttributes.add("RC_RankCol");
+			try {
+				ShapeFileImporter.read(areasFile, world, desiredAttributes);
+			}
+				catch (FileNotFoundException ex){
+			}
+			*/
 
 			// read in the FZ3 file
 			File flood3File = new File("data/Gloucestershire_FZ_3.shp");
@@ -348,7 +359,7 @@ public class MK_7_1 extends SimState {
 		int id = myCopy.getIntegerAttribute("ID");
 		assignedWards.add(id);
 		System.out.println();
-		System.out.println("Goal LSOA OSVI Raiting: = " + myCopy.getIntegerAttribute("L_GL_OSVI_"));
+		System.out.println("Highest Rated OSVI Raiting: = " + myCopy.getIntegerAttribute("L_GL_OSVI_"));
 		return myCopy.getIntegerAttribute("ROAD_ID_1");
 	}
 
@@ -380,7 +391,7 @@ public class MK_7_1 extends SimState {
 				// int mainAgentSpeed = MainAgent.MoveRate;
 				// System.out.println("Main Agent speed = " +mainAgentSpeed);
 
-				String id = bits[0];
+				String id = bits[3];
 				String homeTract = bits[1];
 				String ROAD_ID = bits[1];
 				String agentName = bits[2];
@@ -389,8 +400,9 @@ public class MK_7_1 extends SimState {
 				int random = getLargestUnassignedWard();
 				// String random = csvData.get(new Random().nextInt(csvData.size()));
 				// String goalTract = random;
-				System.out.println("Goal LSOA Centroid road segment: " + random);// goalTract);
-				System.out.println("Assigning Agent... ");
+				System.out.println("Nearest road segment of of chosen LSOA Centroid: " + random);// goalTract);
+				System.out.println("........");
+				System.out.println("Assigning Agent to chosen LSOA... ");
 				System.out.println("Agent's name: " + agentName);// goalTract);
 				System.out.println("Agent's HQ road segment: " + homeTract);
 
@@ -401,7 +413,7 @@ public class MK_7_1 extends SimState {
 				// uses the hardcoded 'goals' from above
 
 				for (int i = 0; i < pop; i++) {
-					agents.Agent a = new agents.Agent(this, agentName, homeTract, startingEdge, goalEdge);
+					agents.Agent a = new agents.Agent(agentName, null, agentName, startingEdge, goalEdge);
 
 					boolean successfulStart = a.start(this);
 					// System.out.println("Starting...");
@@ -460,6 +472,132 @@ public class MK_7_1 extends SimState {
 			junctions.addGeometry(new MasonGeometry(point));
 			counter++;
 		}
+	}
+	
+	/**
+	 * Return the GeoNode in the road network which is closest to the given coordinate
+	 * 
+	 * @param c
+	 * @return
+	 */
+	public GeoNode getClosestGeoNode(Coordinate c){
+		
+		// find the set of all nodes within *resolution* of the given point
+		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
+		if(objects == null || roads.getGeometries().size() <= 0) 
+			return null; // problem with the network layer
+
+		// among these options, pick the best
+		double bestDist = resolution; // MUST be within resolution to count
+		GeoNode best = null;
+		for(Object o: objects){
+			double dist = ((GeoNode)o).geometry.getCoordinate().distance(c);
+			if(dist < bestDist){
+				bestDist = dist;
+				best = ((GeoNode)o);
+			}
+		}
+		
+		// if there is a best option, return that!
+		if(best != null && bestDist == 0) 
+			return best;
+		
+		// otherwise, closest GeoNode is associated with the closest Edge, so look for that!
+		
+		ListEdge edge = getClosestEdge(c);
+		
+		// find that edge
+		if(edge == null){
+			edge = getClosestEdge(c, resolution * 10);
+			if(edge == null)
+				return null;
+		}
+		
+		// of that edge's endpoints, find the closer of the two and return it
+		GeoNode n1 = (GeoNode) edge.getFrom();
+		GeoNode n2 = (GeoNode) edge.getTo();
+		
+		if(n1.geometry.getCoordinate().distance(c) <= n2.geometry.getCoordinate().distance(c))
+			return n1;
+		else 
+			return n2;
+	}
+	
+	/**
+	 * Return the ListEdge in the road network which is closest to the given coordinate
+	 * 
+	 * @param c
+	 * @return
+	 */
+	public ListEdge getClosestEdge(Coordinate c){
+		
+		// find the set of all edges within *resolution* of the given point
+		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
+		if(objects == null || roads.getGeometries().size() <= 0) 
+			return null; // problem with the network edge layer
+		
+		Point point = fa.createPoint(c);
+		
+		// find the closest edge among the set of edges
+		double bestDist = resolution;
+		ListEdge bestEdge = null;
+		for(Object o: objects){
+			double dist = ((MasonGeometry)o).getGeometry().distance(point);
+			if(dist < bestDist){
+				bestDist = dist;
+				bestEdge = (ListEdge) ((AttributeValue) ((MasonGeometry) o).getAttribute("ListEdge")).getValue();
+			}
+		}
+		
+		// if it exists, return it
+		if(bestEdge != null)
+			return bestEdge;
+		
+		// otherwise return failure
+		else
+			return null;
+	}
+	
+	/**
+	 * Return the ListEdge in the road network which is closest to the given coordinate, within the given resolution
+	 * 
+	 * @param c
+	 * @param resolution
+	 * @return
+	 */
+	public ListEdge getClosestEdge(Coordinate c, double resolution){
+
+		// find the set of all edges within *resolution* of the given point
+		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
+		if(objects == null || roads.getGeometries().size() <= 0) 
+			return null; // problem with the network edge layer
+		
+		Point point = fa.createPoint(c);
+		
+		// find the closest edge among the set of edges
+		double bestDist = resolution;
+		ListEdge bestEdge = null;
+		for(Object o: objects){
+			double dist = ((MasonGeometry)o).getGeometry().distance(point);
+			if(dist < bestDist){
+				bestDist = dist;
+				bestEdge = (ListEdge) ((AttributeValue) ((MasonGeometry) o).getAttribute("ListEdge")).getValue();
+			}
+		}
+		
+		// if it exists, return it
+		if(bestEdge != null)
+			return bestEdge;
+		
+		// otherwise return failure
+		else
+			return null;
+	}
+	
+	/** set the seed of the random number generator */
+	void seedRandom(long number){
+		random = new MersenneTwisterFast(number);
+		mySeed = number;
 	}
 
 	/**

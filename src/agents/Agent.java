@@ -46,7 +46,7 @@ import com.vividsolutions.jts.planargraph.Node;
  * @author KJGarbutt
  *
  */
-public final class Agent implements Steppable {
+public final class Agent extends TrafficAgent implements Steppable {
 	private static final long serialVersionUID = -1113018274619047013L;
 
 	////////// Objects ///////////////////////////////////////
@@ -74,11 +74,12 @@ public final class Agent implements Steppable {
 	String goalTract = "";
 	String agentName = "";
 	Node headquartersNode = null;
-	Node lsoaNode = null;
+	Node goalNode = null;
 	// private Point location;
 	private MasonGeometry location; // point that denotes agent's position
-	//private double basemoveRate = 20.0; // How much to move the agent by in each step
-	//private double moveRate = basemoveRate; // private double moveRate = 70;
+	// private double basemoveRate = 20.0; // How much to move the agent by in each
+	// step
+	// private double moveRate = basemoveRate; // private double moveRate = 70;
 	private double moveRate = 20.0;
 	int minMoveRate = 20;
 	int maxCarMoveRate = 60;
@@ -88,13 +89,16 @@ public final class Agent implements Steppable {
 	// private Color outboundColor = Color.red;
 	String type = "";
 
+	double lastMove = -1;
+
+	Coordinate goalCoord = null;
+
 	////////// Movement + Goals //////////////////////////////
 	double startIndex = 0.0; // start position of current line
 	double endIndex = 0.0; // end position of current line
 	double currentIndex = 0.0; // current location along line
 	GeomPlanarGraphEdge currentEdge = null;
-	ArrayList<GeomPlanarGraphDirectedEdge> pathFromHQToLSOA = 
-			new ArrayList<GeomPlanarGraphDirectedEdge>();
+	ArrayList<Edge> pathFromHQToLSOA = new ArrayList<Edge>();
 	int indexOnPath = 0;
 	int pathDirection = 1;
 	private LengthIndexedLine segment = null;
@@ -126,18 +130,22 @@ public final class Agent implements Steppable {
 	//////////////////////////////// AGENT /////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////
 
-	//public GeoNode getNode() {return node;}
-	
+	public GeoNode getNode() {return node;}
+
 	/**
-	 * //////////////////////// Default Wrapper Constructor
-	 * ///////////////////////////// Constructor: specifies parameters for the
-	 * Agent's Default Wrapper Constructor
+	 * //////////////////////// Default Wrapper Constructor ///////////////////////
+	 * Constructor: specifies parameters for the Agent's Default Wrapper Constructor
 	 * 
-	 * @param id - unique string identifying the Agent
-	 * @param position - Coordinate indicating the initial position of the Agent
-	 * @param home - Coordinate indicating the Agent's home location
-	 * @param work - Coordinate indicating the Agent's workplace
-	 * @param world - reference to the containing Hotspots instance
+	 * @param id
+	 *            - unique string identifying the Agent
+	 * @param position
+	 *            - Coordinate indicating the initial position of the Agent
+	 * @param home
+	 *            - Coordinate indicating the Agent's home location
+	 * @param work
+	 *            - Coordinate indicating the Agent's workplace
+	 * @param world
+	 *            - reference to the containing Hotspots instance
 	 */
 	// public Agent(MK_7_1 g, String agentName, Coordinate homeTract, Coordinate
 	// startingEdge, Coordinate goalEdge){
@@ -145,30 +153,34 @@ public final class Agent implements Steppable {
 	// }
 
 	/**
-	 * //////////////////////// Specialised Constructor
-	 * //////////////////////////////// Constructor: used to specify parameters for
-	 * an Agent
+	 * //////////////////////// Specialised Constructor ////////////////////////////
+	 * Constructor: used to specify parameters for an Agent
 	 *
-	 * @param location - Coordinate indicating the initial position of the Agent
-	 * @param headquartersNode - Coordinate indicating the Agent's home location
-	 * @param lsaoNode - Coordinate indicating the Agent's LSOA destination
-	 * @param world - reference to the containing GloucestershireRouting instance
+	 * @param location
+	 *            - Coordinate indicating the initial position of the Agent
+	 * @param headquartersNode
+	 *            - Coordinate indicating the Agent's home location
+	 * @param lsaoNode
+	 *            - Coordinate indicating the Agent's LSOA destination
+	 * @param world
+	 *            - reference to the containing GloucestershireRouting instance
 	 * 
-	 * Also Speed and various other parameters need adding
+	 *            Also Speed and various other parameters need adding
 	 */
 	// public MainAgent(MK_7_1 g, String agentName, Coordinate homeTract, Coordinate
 	// startingEdge, Coordinate goalEdge) {
-	public Agent(MK_7_1 g, String agentName, String homeTract, 
-			GeomPlanarGraphEdge startingEdge, GeomPlanarGraphEdge goalEdge) {
-		
-		//super((new GeometryFactory()).createPoint(position)); // From Hotspots
-		
-		world = g;
+	public Agent(String id, Coordinate position, String homeTract, GeomPlanarGraphEdge startingEdge,
+			GeomPlanarGraphEdge goalEdge) {
+
+		super((new GeometryFactory()).createPoint(position)); // From Hotspots
+
+		this.world = world;
+		this.isMovable = true;
 		Random random = null;
 
 		// set up information about where the node is and where the Agent is going
 		headquartersNode = startingEdge.getDirEdge(0).getFromNode();
-		lsoaNode = goalEdge.getDirEdge(0).getToNode();
+		goalNode = goalEdge.getDirEdge(0).getToNode();
 		this.agentName = agentName;
 		this.homeTract = homeTract;
 		this.goalTract = goalTract;
@@ -177,16 +189,14 @@ public final class Agent implements Steppable {
 		GeometryFactory fact = new GeometryFactory();
 
 		location = new MasonGeometry(fact.createPoint(new Coordinate(10, 10)));
-		
-		location.isMovable = true;
 
 		// Now set up attributes for this agent
-		if (g.random.nextBoolean()) {
+		if (this.world.random.nextBoolean()) {
 			type = "4x4";
 			location.addStringAttribute("TYPE", "4x4");
 			System.out.println("Agent's Vehicle = " + type);
 
-			int range = (int) (40.0 * g.random.nextGaussian());
+			int range = (int) (40.0 * this.world.random.nextGaussian());
 			location.addIntegerAttribute("RANGE", range);
 			// System. out.println("Agent's RANGE = " + range );
 
@@ -195,7 +205,7 @@ public final class Agent implements Steppable {
 			System.out.println("Agent's available resources = " + resources_Available);
 
 			moveRate = Math.random() * ((maxRoverMoveRate - minMoveRate) + 1) + minMoveRate;
-			//moveRate = (int) (Math.random() * 50) + 1;
+			// moveRate = (int) (Math.random() * 50) + 1;
 			System.out.println("Agent's speed = " + moveRate);
 			location.addDoubleAttribute("MOVE RATE", moveRate);
 		} else {
@@ -203,7 +213,7 @@ public final class Agent implements Steppable {
 			location.addStringAttribute("TYPE", "Car");
 			System.out.println("Agent's Vehicle = " + type);
 
-			int range = (int) (20.0 * g.random.nextGaussian());
+			int range = (int) (20.0 * this.world.random.nextGaussian());
 			location.addIntegerAttribute("RANGE", range);
 			// System. out.println("Agent's RANGE = " + range );
 
@@ -212,7 +222,7 @@ public final class Agent implements Steppable {
 			System.out.println("Agent's  available resources = " + resources_Available);
 
 			moveRate = Math.random() * ((maxCarMoveRate - minMoveRate) + 1) + minMoveRate;
-			//moveRate = (int) (Math.random() * 70) + 1;
+			// moveRate = (int) (Math.random() * 70) + 1;
 			System.out.println("Agent's speed = " + moveRate);
 			location.addDoubleAttribute("MOVE RATE", moveRate);
 		}
@@ -224,8 +234,12 @@ public final class Agent implements Steppable {
 
 		Coordinate startCoord = null;
 		startCoord = headquartersNode.getCoordinate();
+		Coordinate goalCoord = null;
+		goalCoord = goalNode.getCoordinate();
 		updatePosition(startCoord);
-		System.out.println("Agent's starting coord: " + location);
+		// System.out.println("Agent's starting coordinate: " + location);
+		System.out.println("Agent's starting coordinate: " + startCoord);
+		System.out.println("Agent's goal coordinate: " + goalCoord);
 
 		//////////////////////////////////////////////////////////////////////////////
 		//////////////////////////// AGENT ATTRIBUTES ////////////////////////////////
@@ -237,11 +251,12 @@ public final class Agent implements Steppable {
 		 * @return integer indicating the Agent's levels of resources
 		 * 
 		 */
-		// public resources(Integer resources_Available, Integer resources_Distributed,
-		// Integer resources_Capacity) {
-		// this.resources_Available = resources_Available;
-		// this.resources_Distributed = resources_Distributed;
-		// this.resources_Capacity = resources_Capacity; }
+		/*
+		 * public resources(Integer resources_Available, Integer resources_Distributed,
+		 * Integer resources_Capacity) { this.resources_Available = resources_Available;
+		 * this.resources_Distributed = resources_Distributed; this.resources_Capacity =
+		 * resources_Capacity; }
+		 */
 
 		/**
 		 * ////////////////////////// Agent Colour ////////////////////////////////////
@@ -263,15 +278,26 @@ public final class Agent implements Steppable {
 	 * Based on the Agent's current activity and time of day, pick its next activity
 	 */
 	void pickDefaultActivity() {
-
+		// if the Agent is moving, keep moving
+		if (currentActivity == activity_travel && segment != null) {
+			return;
+		}
+		// if the Agent is travelling but has no route,
+		else if(currentActivity == activity_travel && segment == null) {
+			
+		}
+		
+		
 	}
 
 	/**
 	 * Return the timestep that will correspond with the next instance of the given
 	 * hour:minute combination
 	 * 
-	 * @param desiredHour - the hour to find
-	 * @param desiredMinuteBlock - the minute to find
+	 * @param desiredHour
+	 *            - the hour to find
+	 * @param desiredMinuteBlock
+	 *            - the minute to find
 	 * @return the timestep of the next hour:minute combination
 	 */
 	int getTime(int desiredHour, int desiredMinuteBlock) {
@@ -292,7 +318,7 @@ public final class Agent implements Steppable {
 
 		return result;
 	}
-	
+
 	/**
 	 * ////////////////////////// Step to Move Agent //////////////////////////////
 	 * Called every tick by the scheduler. Moves the Agent along the path.
@@ -303,37 +329,53 @@ public final class Agent implements Steppable {
 
 		////////// Initial Checks //////////////////////////////
 
-		// check that we've been placed on an Edge
+		// make sure the Agent is only being called once per tick
+		
+		if (lastMove >= state.schedule.getTime()) { System.out.println(this +
+		"is being called too often!. " + "WHY??? EVERYBODY PANIC!!!"); return; }
+		
+
+		// check that Agent has been placed on an Edge
 		if (segment == null) {
-			System.out.println(this + " segment == null");
+			System.out.println(
+					this + "'s segment == null. " + "Agent is NOT on an edge!!! " + "WHY??? EVERYBODY PANIC!!!");
 			return;
 		}
 
-		// make sure the Agent is only being called once per tick
-		// if(lastMove >= state.schedule.getTime()) return;
+		// if(location.geometry.getCoordinate() == null) { System.out.println(this +
+		// "'s location == null! " + "Agent has NO coordinate!!! " +
+		// "WHY??? EVERYBODY PANIC!!!"); return; }
 
-		// MK_7_1 gstate = (MK_7_1) state;
+		// if (location.geometry.getCoordinate() == headquartersNode.getCoordinate()) {
+		// System.out.println(this + " is at HQ ");
+		// }
 
-		// else if (segment != null && currentJunction = destinationJunction) {
+		if (location.geometry.getCoordinate() != goalNode.getCoordinate()
+				|| location.geometry.getCoordinate() != headquartersNode.getCoordinate()) {
+			//System.out.println(this + " is travelling.");
+			distributing = false;
+			inbound = false;
+			status = Status.INBOUND;
+			//System.out.println(this + " is " + status);
+		}
 
 		// check that we haven't already reached our destination
-		else if (distributing) {
+		else if (location.geometry.getCoordinate() == goalNode.getCoordinate()) {
+			System.out.println(this + " IS AT ITS GOAL! ");
 			status = Status.DISTRIBUTING;
 			// setActive(gstate);
-			System.out.println(this + " is " + status);
-			System.out.println(location);
+			System.out.println(this + " is " + status + location);
 
 			//////////////////////////////////////////////
 			////// NEED TO DROP GOODS, CHANGE STATUS /////
 			//////////////////////////////////////////////
 
 			recordOfTrips.add(
-					// this.toString() + " COMPLETED TRIP TO " +
-					// this.getGeometry().geometry.getCoordinate().toString());
 					this.toString() + " COMPLETED TRIP TO " + this.getGeometry().geometry.getCentroid().toString());
 
 			flipPath();
-			state.schedule.scheduleOnce(state.schedule.getTime() + 50, this); // makes Agent wait before flipping route
+			state.schedule.scheduleOnce(state.schedule.getTime() + 50, this);
+			// makes Agent wait before flipping route
 
 			return;
 		}
@@ -361,10 +403,11 @@ public final class Agent implements Steppable {
 			Coordinate currentPos = segment.extractPoint(currentIndex);
 
 			updatePosition(currentPos);
-			//System.out.println(this + " currentPos " + currentPos);
+			// System.out.println(this + " currentPos " + currentPos);
 		}
 
 		state.schedule.scheduleOnce(this);
+		// lastMove = state.schedule.getTime();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -375,53 +418,49 @@ public final class Agent implements Steppable {
 	 * ////////////////////////// Set Up Path /////////////////////////////////////
 	 * a course to take the Agent to the given coordinates
 	 *
-	 * @param place - the target destination
+	 * @param place
+	 *            - the target destination
 	 * @return 1 for success, -1 for a failure to find a path, -2 for failure based
 	 *         on the provided destination or current position
 	 */
 	// int headFor(Coordinate place, Network roadNetwork) {
 
-	// first, record from where the agent is starting
-
-	// if the current node and the current edge don't match, there's a problem with
-	// the Agent's understanding of its
-	// current position
-
-	// FINDING THE GOAL //////////////////
-
-	// set up goal information
-
-	// be sure that if the target location is not a node but rather a point along an
-	// edge, that
-	// point is recorded
-
-	// FINDING A PATH /////////////////////
-
-	// if it fails, give up
-
-	// CHECK FOR BEGINNING OF PATH ////////
-
-	// we want to be sure that we're situated on the path *right now*, and that if
-	// the path
-	// doesn't include the link we're on at this moment that we're both
-	// a) on a link that connects to the startNode
-	// b) pointed toward that startNode
-	// Then, we want to clean up by getting rid of the edge on which we're already
-	// located
-	// Make sure we're in the right place, and face the right direction
-
-	// reset stuff
-
-	// CHECK FOR END OF PATH //////////////
-
-	// we want to be sure that if the goal point exists and the Agent isn't already
-	// on the edge
-	// that contains it, the edge that it's on is included in the path
-
-	// make sure the point is on the last edge
-
-	// set up the coordinates
-	// }
+	/*
+	 * first, record from where the agent is starting
+	 * 
+	 * if the current node and the current edge don't match, there's a problem with
+	 * the Agent's understanding of its current position
+	 * 
+	 * ///////////////////// FINDING THE GOAL //////////////////
+	 * 
+	 * set up goal information
+	 * 
+	 * be sure that if the target location is not a node but rather a point along an
+	 * edge, that point is recorded
+	 * 
+	 * ///////////////////// FINDING A PATH /////////////////////
+	 * 
+	 * if it fails, give up
+	 * 
+	 * /////////////////////CHECK FOR BEGINNING OF PATH ////////
+	 * 
+	 * we want to be sure that we're situated on the path *right now*, and that if
+	 * the path doesn't include the link we're on at this moment that we're both a)
+	 * on a link that connects to the startNode b) pointed toward that startNode
+	 * Then, we want to clean up by getting rid of the edge on which we're already
+	 * located Make sure we're in the right place, and face the right direction
+	 * 
+	 * reset stuff
+	 * 
+	 * /////////////////////CHECK FOR END OF PATH //////////////
+	 * 
+	 * we want to be sure that if the goal point exists and the Agent isn't already
+	 * on the edge that contains it, the edge that it's on is included in the path
+	 * 
+	 * make sure the point is on the last edge
+	 * 
+	 * set up the coordinates }
+	 */
 
 	////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// end METHODS ///////////////////////////////////
@@ -445,7 +484,7 @@ public final class Agent implements Steppable {
 					+ ") failed: it is located in a part of the network that cannot " + "access the given goal.");
 			return false;
 		} else {
-			System.out.println("Agent has a new A* path...");
+			System.out.println("Agent has been assigned a route.");
 			return true;
 		}
 	}
@@ -458,14 +497,14 @@ public final class Agent implements Steppable {
 
 		// get the home and work Nodes with which this Agent is associated
 		Node currentJunction = geoTest.network.findNode(location.geometry.getCoordinate());
-		Node destinationJunction = lsoaNode;
+		Node destinationJunction = goalNode;
 
 		if (currentJunction == null) {
 			return; // just a check
 		}
 		// find the appropriate A* path between them
 		AStar pathfinder = new AStar();
-		ArrayList<GeomPlanarGraphDirectedEdge> path = pathfinder.astarPath(currentJunction, destinationJunction);
+		ArrayList<Edge> path = pathfinder.astarPath(currentJunction, destinationJunction, network);
 
 		// if the path works, lay it in
 		if (path != null && path.size() > 0) {
@@ -483,7 +522,7 @@ public final class Agent implements Steppable {
 	}
 
 	double progress(double val) {
-		double edgeLength = currentEdge.getLine().getLength();
+		double edgeLength = ((GeomPlanarGraphEdge) currentEdge).getLine().getLength();
 		double traffic = world.edgeTraffic.get(currentEdge).size();
 		double factor = 1000 * edgeLength / (traffic * 5);
 		factor = Math.min(1, factor);
@@ -504,13 +543,13 @@ public final class Agent implements Steppable {
 
 		// Loop through all the agents within vision and count the number of active
 		// civilians
-		// MasonGeometry buffer = new
-		// MasonGeometry(this.location.buffer(osviState.personVision), this);
-		// Bag persons = osviState.persons.getCoveredObjects(buffer);
-		// Bag cops = osviState.cops.getCoveredObjects(buffer);
-		// for(Object person : MainAgent){
-		// MainAgent p = (MainAgent)((MasonGeometry) person).getUserData();
-
+		/*
+		 * MasonGeometry buffer = new
+		 * MasonGeometry(this.location.buffer(osviState.personVision), this); Bag
+		 * persons = osviState.persons.getCoveredObjects(buffer); Bag cops =
+		 * osviState.cops.getCoveredObjects(buffer); for(Object person : MainAgent){
+		 * MainAgent p = (MainAgent)((MasonGeometry) person).getUserData();
+		 */
 		if (agents.Agent.active) {
 			numActive++;
 		}
@@ -539,7 +578,7 @@ public final class Agent implements Steppable {
 		inbound = false;
 		status = Status.INBOUND;
 		System.out.println(this + " is " + status);
-		this.timeSinceDeparted = 0;
+		// this.timeSinceDeparted = 0;
 
 		pathDirection = -pathDirection;
 		linkDirection = -linkDirection;
@@ -549,8 +588,8 @@ public final class Agent implements Steppable {
 	 * ////////////////////////// Move Agent to Next Edge ////////////////////////
 	 * Transition to the next edge in the path
 	 * 
-	 * @param residualMove - the amount of distance the Agent can still 
-	 * 						 travel this turn
+	 * @param residualMove
+	 *            - the amount of distance the Agent can still travel this turn
 	 */
 	void transitionToNextEdge(double residualMove) {
 
@@ -567,7 +606,7 @@ public final class Agent implements Steppable {
 			status = Status.OUTBOUND;
 			distributing = true;
 			inbound = true;
-			System.out.println(this + " is " + status);
+			//System.out.println(this + " is " + status);
 			indexOnPath -= pathDirection; // make sure index is correct
 			return;
 		}
@@ -591,7 +630,8 @@ public final class Agent implements Steppable {
 	 * ////////////////////////// Agent's Route Info /////////////////////////////
 	 * Sets the Agent up to proceed along an Edge
 	 * 
-	 * @param edge - the GeomPlanarGraphEdge to traverse next
+	 * @param edge
+	 *            - the GeomPlanarGraphEdge to traverse next
 	 */
 	void setupEdge(GeomPlanarGraphEdge edge) {
 
@@ -610,7 +650,7 @@ public final class Agent implements Steppable {
 
 		// set up the new segment and index info for the Agent's position on the road
 		// segment
-		LineString line = edge.getLine();
+		LineString line = ((GeomPlanarGraphEdge) edge).getLine();
 		segment = new LengthIndexedLine(line);
 		// segment = new
 		// LengthIndexedLine((LineString)((MasonGeometry)edge.info).geometry); // From
@@ -644,37 +684,14 @@ public final class Agent implements Steppable {
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////// end ROUTING ///////////////////////////////// 
+	//////////////////////////////// end ROUTING /////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// UTILITIES ///////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * ////////////////////////// DISTANCE TO GOAL //////////////////////////////
-	 * Determines the distance from the given location to the nearest threat of
-	 * which the Agent knows.
-	 * 
-	 * @param location - the location which is being compared against possible threats
-	 * @return the distance to the nearest threat
-	 */
-	// double distanceToGoal(Geometry location){
-	// double mindist = Double.MAX_VALUE;
-	// for(Object o: knowledge.keySet()){
-	// double dist;
-	// if(o instanceof Wildfire)
-	// dist = ((Wildfire)o).extent.distance(location);
-	// else if(o instanceof Coordinate)
-	// dist = ((Coordinate)o).distance(location.getCoordinate());
-	// else // something has gone wrong
-	// dist = Double.MAX_VALUE;
-	// if(dist < mindist) mindist = dist;
-	// }
-	// return mindist;
-	// }
-
-	// GETTERS
+	// ///////////////////// GETTERS /////////////////////
 	// public Coordinate getHome(){ return home; }
 	// public Coordinate getWork(){ return work; }
 	// public int getActivity(){ return this.currentActivity; }
@@ -717,7 +734,7 @@ public final class Agent implements Steppable {
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////// end UTILITIES /////////////////////////////// 
+	//////////////////////////////// end UTILITIES ///////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
 }
