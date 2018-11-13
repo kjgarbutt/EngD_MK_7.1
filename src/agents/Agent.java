@@ -431,7 +431,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 	 * @return 1 for success, -1 for a failure to find a path, -2 for failure based
 	 *         on the provided destination or current position
 	 */
-	// int headFor(Coordinate place, Network roadNetwork) {
+	//int headFor(Coordinate place, Network roadNetwork) {
 
 	/*
 	 * first, record from where the agent is starting
@@ -467,9 +467,9 @@ public final class Agent extends TrafficAgent implements Steppable {
 	 * 
 	 * make sure the point is on the last edge
 	 * 
-	 * set up the coordinates }
+	 * set up the coordinates
 	 */
-
+		
 	////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////// end METHODS ///////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////
@@ -492,7 +492,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 					+ ") failed: it is located in a part of the network that cannot " + "access the given goal.");
 			return false;
 		} else {
-			System.out.println("Agent has been assigned a route.");
+			System.out.println("Agent has been assigned a path.");
 			return true;
 		}
 	}
