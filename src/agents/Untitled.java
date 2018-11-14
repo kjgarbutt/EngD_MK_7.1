@@ -315,7 +315,7 @@ public class SWiseAgent extends TrafficAgent implements Communicator, Serializab
 				// pick the road that gets you closest to your target destination, and try to plan again from there!
 				for(Object o: world.majorRoadNodesLayer.getObjectsWithinDistance(node, 1000)){
 	                GeoNode other = (GeoNode) o;
-	                headFor(other.geometry.getCoordinate(), world.roads);
+	                headFor(other.geometry.getCoordinate(), world.roadLayer);
 	                if(path != null) // if the Agent has found a path, great! Go from there
 	                	return 1;
 				}
@@ -1129,7 +1129,7 @@ public class SWiseAgent extends TrafficAgent implements Communicator, Serializab
 
 			headFor(goalNode.geometry.getCoordinate(), familiarRoadNetwork);
 			if(path == null)
-				headFor(goalNode.geometry.getCoordinate(), world.roads);
+				headFor(goalNode.geometry.getCoordinate(), world.roadLayer);
 		}
 
 		// 	TODO: "pick up kids at school, partner at home" if appropriate
@@ -1319,10 +1319,10 @@ public class SWiseAgent extends TrafficAgent implements Communicator, Serializab
 			GeoNode workNode = world.getClosestGeoNode(this.work);
 			GeoNode homeNode = world.getClosestGeoNode(this.home);
 
-			ArrayList <Edge> pathFromHomeToWork = pathfinder.astarPath(homeNode, workNode, world.roads);
+			ArrayList <Edge> pathFromHomeToWork = pathfinder.astarPath(homeNode, workNode, world.roadLayer);
 			this.familiarPaths.add(pathFromHomeToWork);
 
-			ArrayList <Edge> pathFromWorkToHome = pathfinder.astarPath(workNode, homeNode, world.roads);
+			ArrayList <Edge> pathFromWorkToHome = pathfinder.astarPath(workNode, homeNode, world.roadLayer);
 			this.familiarPaths.add(pathFromWorkToHome);
 		}
 

@@ -19,22 +19,28 @@ import java.io.*;
 
 import sim.engine.SimState;
 import sim.field.geo.GeomVectorField;
+import sim.field.network.Edge;
+import sim.field.network.Network;
 import sim.io.geo.ShapeFileImporter;
 import sim.util.Bag;
 import sim.util.geo.GeomPlanarGraph;
 import sim.util.geo.GeomPlanarGraphEdge;
 import sim.util.geo.MasonGeometry;
+import utilities.NetworkUtilities;
 import sim.util.geo.AttributeValue;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.planargraph.Node;
 import network.GeoNode;
 import network.ListEdge;
 
 import ec.util.MersenneTwisterFast;
+import 	network.AStar;
 
 /**
  *
@@ -63,18 +69,23 @@ public class MK_7_1 extends SimState {
 	//////////////////////////////////////////////////////////////////////////////
 
 	private static final long serialVersionUID = -4554882816749973618L;
+	public int grid_width = 700;
+	public int grid_height = 700;
 	public static double resolution = 5;// the granularity of the simulation
 	// (fiddle around with this to merge nodes into one another)
 
 	///////////////////////////// Containers /////////////////////////////////////
 	public GeomVectorField baseLayer = new GeomVectorField();
-	public GeomVectorField roads = new GeomVectorField();
+	public GeomVectorField roadLayer = new GeomVectorField();
+	public GeomVectorField networkLayer = new GeomVectorField();
+	public GeomVectorField networkEdgeLayer = new GeomVectorField();	
+	public GeomVectorField majorRoadNodesLayer = new GeomVectorField();
 	public GeomVectorField flood3 = new GeomVectorField();
 	public GeomVectorField flood2 = new GeomVectorField();
 	public GeomVectorField agentsLayer = new GeomVectorField();
 
 	///////////////////////////// Network ////////////////////////////////////////
-	public GeomPlanarGraph network = new GeomPlanarGraph();
+	//public GeomPlanarGraph network = new GeomPlanarGraph();
 	// Stores road network connections
 	public GeomVectorField junctions = new GeomVectorField();
 	// Stores nodes for road intersections
@@ -83,24 +94,32 @@ public class MK_7_1 extends SimState {
 	public GeomVectorField mainagents = new GeomVectorField();
 
 	///////////////////////////// Objects ////////////////////////////////////////
+	
+	public Bag roadNodes = new Bag();
+	public Network roadNetwork = new Network(false);
+	HashMap <MasonGeometry, ArrayList <GeoNode>> localNodes;
+	public Bag terminus_points = new Bag();
+	
 	public GeometryFactory fa = new GeometryFactory();
 
 	long mySeed = 0;
 
 	Envelope MBR = null;
 
+	// Here we force the agents to go to or from work at any time
+	public boolean goToLSOA = true;
+	
+	boolean verbose = false;
+
+	public int activeCount;
+	public int numActive = 0;
+	
 	// Model ArrayLists for agents and OSVI Polygons
 	ArrayList<agents.Agent> agentList = new ArrayList<agents.Agent>();
 	ArrayList<Integer> assignedWards = new ArrayList<Integer>();
 	ArrayList<Integer> visitedWards = new ArrayList<Integer>(); // TODO record visited LSOAs
 	ArrayList<Polygon> polys = new ArrayList<Polygon>();
 	ArrayList<String> csvData = new ArrayList<String>();
-
-	// Here we force the agents to go to or from work at any time
-	public boolean goToLSOA = true;
-
-	public int activeCount;
-	public int numActive = 0;
 
 	public boolean getGoToLSOA() {
 		return goToLSOA;
@@ -165,7 +184,7 @@ public class MK_7_1 extends SimState {
 
 			// read in the roads shapefile to create the transit network
 			File roadsFile = new File("data/GL_ITN_MultipartToSinglepart.shp");
-			ShapeFileImporter.read(roadsFile.toURI().toURL(), roads);
+			ShapeFileImporter.read(roadsFile.toURI().toURL(), roadLayer);
 			System.out.println("	Roads shapefile: " + roadsFile);
 
 			/*
@@ -186,7 +205,7 @@ public class MK_7_1 extends SimState {
 			ShapeFileImporter.read(flood2File.toURI().toURL(), flood2);
 			System.out.println("	FZ2 shapefile: " + flood2File);
 
-			createNetwork();
+			//createNetwork();
 
 			System.out.println("Setting up OSVI Portrayals...");
 			System.out.println();
@@ -204,10 +223,88 @@ public class MK_7_1 extends SimState {
 			// and everyone knows what the standard MBR is
 			MBR = baseLayer.getMBR();
 			baseLayer.setMBR(MBR);
-			roads.setMBR(MBR);
+			roadLayer.setMBR(MBR);
 			flood3.setMBR(MBR);
 			flood2.setMBR(MBR);
+			
+			baseLayer.setMBR(MBR);
 
+			// clean up the road network
+			
+			System.out.print("Cleaning the road network...");
+			
+			roadNetwork = NetworkUtilities.multipartNetworkCleanup(roadLayer, roadNodes, resolution, fa, random, 0);
+			roadNodes = roadNetwork.getAllNodes();
+			//testNetworkForIssues(roadNetwork);
+			
+			// set up roads as being "open" and assemble the list of potential terminii
+			roadLayer = new GeomVectorField(grid_width, grid_height);
+			for(Object o: roadNodes){
+				GeoNode n = (GeoNode) o;
+				networkLayer.addGeometry(n);
+				
+				boolean potential_terminus = false;
+				
+				// check all roads out of the nodes
+				for(Object ed: roadNetwork.getEdgesOut(n)){
+					
+					// set it as being (initially, at least) "open"
+					ListEdge edge = (ListEdge) ed;
+					((MasonGeometry)edge.info).addStringAttribute("open", "OPEN");
+					networkEdgeLayer.addGeometry( (MasonGeometry) edge.info);
+					roadLayer.addGeometry((MasonGeometry) edge.info);
+					((MasonGeometry)edge.info).addAttribute("ListEdge", edge);
+					
+					String type = ((MasonGeometry)edge.info).getStringAttribute("TYPE");
+					if(type.equals("motorway") || type.equals("primary") || type.equals("trunk"))
+						potential_terminus = true;
+				}
+				
+				// check to see if it's a terminus
+				if(potential_terminus && !MBR.contains(n.geometry.getCoordinate()) && roadNetwork.getEdges(n, null).size() == 1){
+					terminus_points.add(n);
+				}
+
+			}
+			
+			// reset MBRS in case it got messed up during all the manipulation
+			baseLayer.setMBR(MBR);
+			roadLayer.setMBR(MBR);
+			flood3.setMBR(MBR);
+			flood2.setMBR(MBR);
+			
+			System.out.println("Done cleaning the road network!");
+			
+			/////////////////////
+			///////// Clean up roads for Agents to use ///////////
+			/////////////////////
+						
+			Network majorRoads = extractMajorRoads();
+			testNetworkForIssues(majorRoads);
+
+			// assemble list of secondary versus local roads
+			ArrayList <Edge> myEdges = new ArrayList <Edge> ();
+			GeomVectorField secondaryRoadsLayer = new GeomVectorField(grid_width, grid_height);
+			GeomVectorField localRoadsLayer = new GeomVectorField(grid_width, grid_height);
+			for(Object o: majorRoads.allNodes){
+				
+				majorRoadNodesLayer.addGeometry((GeoNode)o);
+				
+				for(Object e: roadNetwork.getEdges(o, null)){
+					Edge ed = (Edge) e;
+					
+					myEdges.add(ed);
+										
+					String type = ((MasonGeometry)ed.getInfo()).getStringAttribute("class");
+					if(type.equals("secondary"))
+							secondaryRoadsLayer.addGeometry((MasonGeometry) ed.getInfo());
+					else if(type.equals("local"))
+							localRoadsLayer.addGeometry((MasonGeometry) ed.getInfo());					
+				}
+			}
+
+			System.gc();
+			
 			//////////////////////////////////////////////////////////////////////
 			/////////////////////////// AGENTS ///////////////////////////////////
 			//////////////////////////////////////////////////////////////////////
@@ -251,6 +348,36 @@ public class MK_7_1 extends SimState {
 	}
 
 	/**
+	 * Connect the GeoNode to the given subnetwork using the complete road network
+	 * 
+	 * @param n - the target node
+	 * @param subNetwork - the existing subnetwork
+	 */
+	void connectToMajorNetwork(GeoNode n, Network subNetwork) {
+
+		try {
+			Bag subNetNodes;			
+			subNetNodes = (Bag) subNetwork.allNodes.clone();
+			
+			// find a path using the whole set of roads in the environment 
+			AStar pathfinder = new AStar();
+			ArrayList <Edge> edges = pathfinder.astarPath(n, new ArrayList <GeoNode> (subNetNodes), roadNetwork);
+			
+			if(edges == null) return; // maybe no such path exists!
+
+			//  otherwise, add the edges into the subnetwork
+			for(Edge e: edges){
+				GeoNode a = (GeoNode) e.getFrom(), b = (GeoNode) e.getTo();
+				if(!subNetwork.nodeExists(a) || !subNetwork.nodeExists(b))
+					subNetwork.addEdge(a, b, e.info);
+			}
+
+		} catch (CloneNotSupportedException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	/**
 	 * //////////////////////// Model Finish & Cleanup ///////////////////////////
 	 * Finish the simulation and clean up
 	 */
@@ -271,13 +398,38 @@ public class MK_7_1 extends SimState {
 	}
 
 	/**
+	 * Make sure the network doesn't have any problems
+	 * 
+	 * @param n - the network to be tested
+	 */
+	static void testNetworkForIssues(Network n){
+		System.out.println("testing");
+		for(Object o: n.allNodes){
+			GeoNode node = (GeoNode) o;
+			for(Object p: n.getEdgesOut(node)){
+				sim.field.network.Edge e = (sim.field.network.Edge) p;
+				LineString ls = (LineString)((MasonGeometry)e.info).geometry;
+				Coordinate c1 = ls.getCoordinateN(0);
+				Coordinate c2 = ls.getCoordinateN(ls.getNumPoints()-1);
+				GeoNode g1 = (GeoNode) e.getFrom();
+				GeoNode g2 = (GeoNode) e.getTo();
+				if(c1.distance(g1.geometry.getCoordinate()) > 1)
+					System.out.println("found you");
+				if(c2.distance(g2.geometry.getCoordinate()) > 1)
+					System.out.println("found you");
+			}
+		}
+	}
+	
+	/**
 	 * //////////////////////// Create Road Network //////////////////////////////
 	 * Create the road network the agents will traverse
 	 */
+	/*
 	private void createNetwork() {
-		System.out.println("Creating road network..." + roads);
+		System.out.println("Creating road network..." + roadLayer);
 		System.out.println();
-		network.createFromGeomField(roads);
+		network.createFromGeomField(roadLayer);
 
 		for (Object o : network.getEdges()) {
 			GeomPlanarGraphEdge e = (GeomPlanarGraphEdge) o;
@@ -289,6 +441,7 @@ public class MK_7_1 extends SimState {
 
 		addIntersectionNodes(network.nodeIterator(), junctions);
 	}
+	*/
 
 	/**
 	 * ///////////////////////// Setup agentGoals /////////////////////////////////
@@ -375,13 +528,13 @@ public class MK_7_1 extends SimState {
 			FileInputStream fstream = new FileInputStream(agentsFilename);
 			System.out.println("Reading in Agents from: " + agentsFilename);
 
-			BufferedReader d = new BufferedReader(new InputStreamReader(fstream));
+			BufferedReader agentData = new BufferedReader(new InputStreamReader(fstream));
 			String s;
 
 			// get rid of the header
-			d.readLine();
+			agentData.readLine();
 			// read in all data
-			while ((s = d.readLine()) != null) {
+			while ((s = agentData.readLine()) != null) {
 				String[] bits = s.split(",");
 
 				int pop = Integer.parseInt(bits[0]);
@@ -425,22 +578,67 @@ public class MK_7_1 extends SimState {
 						// System.out.println("Agent added successfully!");
 					}
 
-					// MasonGeometry newGeometry = new MasonGeometry(a.getGeometry());
-					MasonGeometry newGeometry = a.getGeometry();
+					MasonGeometry newGeometry = new MasonGeometry(a.getGeometry());
+					//MasonGeometry newGeometry = a.getGeometry();
 					newGeometry.isMovable = true;
 					agentsLayer.addGeometry(newGeometry);
-					agentList.add(a);
+					this.agentList.add(a);
 					schedule.scheduleOnce(a);
 				}
 			}
 
-			d.close();
+			agentData.close();
 			System.out.println();
 			System.out.println("All Agents added successfully!");
 		} catch (Exception e) {
 			System.out.println("ERROR: issue with population file: ");
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Coordinate reader helper function
+	 * @param s
+	 * @return
+	 */
+	Coordinate readCoordinateFromFile(String s){
+		if(s.equals("")) 
+			return null;
+		
+		String [] bits = s.split(" ");
+		Double x = Double.parseDouble( bits[1].substring(1) );
+		Double y = Double.parseDouble(bits[2].substring(0, bits[2].length() - 2));
+		return new Coordinate(x,y);
+	}
+	
+	/**
+	 * Extract the major roads from the road network
+	 * @return a connected network of major roads
+	 */
+	public Network extractMajorRoads(){
+		Network majorRoads = new Network();
+		
+		// go through all nodes
+		for(Object o: roadNetwork.getAllNodes()){
+		
+			GeoNode n = (GeoNode) o;
+			
+			// go through all edges
+			for(Object p: roadNetwork.getEdgesOut(n)){
+				
+				sim.field.network.Edge e = (sim.field.network.Edge) p;
+				String type = ((MasonGeometry)e.info).getStringAttribute("class");
+				
+				// save major roads
+				if(type.equals("major"))
+						majorRoads.addEdge(e.from(), e.to(), e.info);
+			}
+		}
+		
+		// merge the major roads into a connected component
+		NetworkUtilities.attachUnconnectedComponents(majorRoads, roadNetwork);
+		
+		return majorRoads;
 	}
 
 	/**
@@ -484,8 +682,8 @@ public class MK_7_1 extends SimState {
 	public GeoNode getClosestGeoNode(Coordinate c) {
 
 		// find the set of all nodes within *resolution* of the given point
-		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
-		if (objects == null || roads.getGeometries().size() <= 0)
+		Bag objects = roadLayer.getObjectsWithinDistance(fa.createPoint(c), resolution);
+		if (objects == null || roadLayer.getGeometries().size() <= 0)
 			return null; // problem with the network layer
 
 		// among these options, pick the best
@@ -535,8 +733,8 @@ public class MK_7_1 extends SimState {
 	public ListEdge getClosestEdge(Coordinate c) {
 
 		// find the set of all edges within *resolution* of the given point
-		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
-		if (objects == null || roads.getGeometries().size() <= 0)
+		Bag objects = roadLayer.getObjectsWithinDistance(fa.createPoint(c), resolution);
+		if (objects == null || roadLayer.getGeometries().size() <= 0)
 			return null; // problem with the network edge layer
 
 		Point point = fa.createPoint(c);
@@ -572,8 +770,8 @@ public class MK_7_1 extends SimState {
 	public ListEdge getClosestEdge(Coordinate c, double resolution) {
 
 		// find the set of all edges within *resolution* of the given point
-		Bag objects = roads.getObjectsWithinDistance(fa.createPoint(c), resolution);
-		if (objects == null || roads.getGeometries().size() <= 0)
+		Bag objects = roadLayer.getObjectsWithinDistance(fa.createPoint(c), resolution);
+		if (objects == null || roadLayer.getGeometries().size() <= 0)
 			return null; // problem with the network edge layer
 
 		Point point = fa.createPoint(c);
@@ -603,6 +801,14 @@ public class MK_7_1 extends SimState {
 		random = new MersenneTwisterFast(number);
 		mySeed = number;
 	}
+	
+	// reset the agent layer's MBR
+		public void resetLayers(){
+			MBR = baseLayer.getMBR();
+			MBR.init(501370, 521370, 4292000, 4312000);
+			this.agentsLayer.setMBR(MBR);
+			this.roadLayer.setMBR(MBR);
+		}
 
 	/**
 	 * //////////////////////// Main Function ////////////////////////////////////

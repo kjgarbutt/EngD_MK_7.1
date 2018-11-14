@@ -1,13 +1,14 @@
 package utilities;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import network.GeoNode;
-import sim.util.Bag;
-import sim.util.geo.MasonGeometry;
-
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
+
+import sim.util.Bag;
+import sim.util.geo.MasonGeometry;
+import swise.objects.network.GeoNode;
 
 public class GeometryUtilities {
 	

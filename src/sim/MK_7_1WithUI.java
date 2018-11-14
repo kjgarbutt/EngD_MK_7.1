@@ -170,7 +170,7 @@ public class MK_7_1WithUI extends GUIState	{
         	 * Sets up the portrayals within the map visualization.
         	 */
 
-            roadsPortrayal.setField(world.roads);
+            roadsPortrayal.setField(world.roadLayer);
             roadsPortrayal.setPortrayalForAll(new GeomPortrayal
             		(Color.DARK_GRAY, 0.0005, false));
             polyPortrayal.setField(world.baseLayer);

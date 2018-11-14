@@ -21,7 +21,6 @@ public class SpatialAgent extends MasonGeometry implements Steppable {
 	protected GeomVectorField space = null;
 	GeometryFactory geometryFactory = new GeometryFactory();
 	
-	@Override
 	public void step(SimState state) {}
 		
 	public SpatialAgent(){ super(); }
