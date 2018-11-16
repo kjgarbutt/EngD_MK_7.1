@@ -498,7 +498,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 	 * @param state
 	 * @return whether or not the Agent successfully found a path to work
 	 */
-	public boolean start(MK_7_1 state) {
+	/*public boolean start(MK_7_1 state) {
 		findNewAStarPath(state);
 		if (pathFromHQToLSOA.isEmpty()) {
 			System.out.println("Initialization of Agent (" + homeTract
@@ -509,7 +509,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 			return true;
 		}
 	}
-
+	 */
 	/**
 	 * Set up a course to take the Agent to the given coordinates
 	 * 
@@ -640,6 +640,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 	 * Plots a path between the Agent's home Node (HQ) and its goal Node (LSOA)
 	 */
 
+	/*
 	private void findNewAStarPath(MK_7_1 geoTest) {
 
 		// get the home and work Nodes with which this Agent is associated
@@ -675,7 +676,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 		factor = Math.min(1, factor);
 		return val * linkDirection * factor;
 	}
-
+ 	*/
 	/**
 	 * ////////////////////// Number of Active Agents ////////////////////////////
 	 * 
@@ -738,7 +739,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 	 * @param residualMove
 	 *            - the amount of distance the Agent can still travel this turn
 	 */
-	
+	/*
 	void transitionToNextEdge(double residualMove) {
 
 		// update the counter for where the index on the path is
@@ -773,8 +774,7 @@ public final class Agent extends TrafficAgent implements Steppable {
 			transitionToNextEdge(startIndex - currentIndex);
 		}
 	}
-
-
+	 */
 	
 	/**
 	 * ////////////////////////// Agent's Route Info /////////////////////////////
