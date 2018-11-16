@@ -639,7 +639,6 @@ public final class Agent extends TrafficAgent implements Steppable {
 	 * ////////////////////////// Plot A* Route ///////////////////////////////////
 	 * Plots a path between the Agent's home Node (HQ) and its goal Node (LSOA)
 	 */
-
 	/*
 	private void findNewAStarPath(MK_7_1 geoTest) {
 
