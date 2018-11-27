@@ -36,22 +36,22 @@ public class AStar {
 	/**
 	 * Finds a path between the start and goal nodes within the given network
 	 * 
-	 * @param start - the node from which to start
-	 * @param goal - the goal node
+	 * @param currentJunction - the node from which to start
+	 * @param destinationJunction - the goal node
 	 * @param network - the network in which the path should exist
 	 * @return either an ordered list of the connecting edges or else null
 	 */
-	public ArrayList<Edge> astarPath(GeoNode start, GeoNode goal, Network network)
+	public ArrayList<Edge> astarPath(Node currentJunction, Node destinationJunction, Network network)
    {
 
         // initial check
-        if (start == null || goal == null){
+        if (currentJunction == null || destinationJunction == null){
             System.out.println("Error: invalid node provided to AStar");
             return null;
         }
 
         // if they're the same place, the path is empty but certainly exists
-        if(start == goal)
+        if(currentJunction == destinationJunction)
         	return new ArrayList<Edge> ();
 
         // containers for the metainformation about the Nodes relative to the
@@ -59,14 +59,14 @@ public class AStar {
         HashMap<GeoNode, AStarNodeWrapper> foundNodes =
             new HashMap<GeoNode, AStarNodeWrapper>();
 
-        AStarNodeWrapper startNode = new AStarNodeWrapper(start);
-        AStarNodeWrapper goalNode = new AStarNodeWrapper(goal);
-        foundNodes.put(start, startNode);
-        foundNodes.put(goal, goalNode);
+        AStarNodeWrapper startNode = new AStarNodeWrapper(currentJunction);
+        AStarNodeWrapper goalNode = new AStarNodeWrapper(destinationJunction);
+        foundNodes.put(currentJunction, startNode);
+        foundNodes.put(destinationJunction, goalNode);
 
         startNode.gx = 0;
-        startNode.hx = heuristic(start, goal);
-        startNode.fx = heuristic(start, goal);
+        startNode.hx = heuristic(currentJunction, destinationJunction);
+        startNode.fx = heuristic(currentJunction, destinationJunction);
 
         // A* containers: nodes to be investigated, nodes that have been investigated
         ArrayList<AStarNodeWrapper> closedSet = new ArrayList<AStarNodeWrapper>(),
@@ -78,7 +78,7 @@ public class AStar {
         { // while there are reachable nodes to investigate
 
             AStarNodeWrapper x = findMin(openSet); // find the shortest path so far
-            if (x.node == goal)
+            if (x.node == destinationJunction)
             { // we have found the shortest possible path to the goal!
                 // Reconstruct the path and send it back.
                 return reconstructPath(goalNode);
@@ -117,7 +117,7 @@ public class AStar {
                 if (!openSet.contains(nextNode))
                 {
                     openSet.add(nextNode);
-                    nextNode.hx = heuristic(next, goal);
+                    nextNode.hx = heuristic(next, destinationJunction);
                     better = true;
                 } else if (tentativeCost < nextNode.gx)
                 {

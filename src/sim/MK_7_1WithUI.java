@@ -20,272 +20,260 @@ import sim.util.media.chart.TimeSeriesChartGenerator;
 import agents.Agent;
 
 /**
-*
-* "MK_7_" is iteration 7.1 of my EngD project model. It varies little from MK_7, 
-* and just has updated details to include Gloucestershire date. It was originally
-* adapted from the MASON demo, "Gridlock", made by Sarah Wise, Mark Coletti, and 
-* Andrew Crooks.
-* 
-* The model reads a number of GIS shapefiles and displays a road network, two 
-* Environment Agency flood maps and a bespoke Open Source Vulnerability Index 
-* (OSVI). The model reads in a .CSV and generates a predetermined number of agents 
-* with set characteristics. The agents are placed on the road network and are 
-* located at a Red Cross office. The model reads a separate .CSV and assigns goal 
-* locations to each agent at random from a predetermined list. The agents are 
-* assigned speeds at random. Once the model is started, the agents move from 
-* A to B, then they change direction and head back to their start position. 
-* The process repeats until the user quits.
-*
-* @author KJGarbutt
-*
-*/
-public class MK_7_1WithUI extends GUIState	{
+ *
+ * "MK_7_" is iteration 7.1 of my EngD project model. It varies little from
+ * MK_7, and just has updated details to include Gloucestershire date. It was
+ * originally adapted from the MASON demo, "Gridlock", made by Sarah Wise, Mark
+ * Coletti, and Andrew Crooks.
+ * 
+ * The model reads a number of GIS shapefiles and displays a road network, two
+ * Environment Agency flood maps and a bespoke Open Source Vulnerability Index
+ * (OSVI). The model reads in a .CSV and generates a predetermined number of
+ * agents with set characteristics. The agents are placed on the road network
+ * and are located at a Red Cross office. The model reads a separate .CSV and
+ * assigns goal locations to each agent at random from a predetermined list. The
+ * agents are assigned speeds at random. Once the model is started, the agents
+ * move from A to B, then they change direction and head back to their start
+ * position. The process repeats until the user quits.
+ *
+ * @author KJGarbutt
+ *
+ */
+public class MK_7_1WithUI extends GUIState {
 
 	//////////////////////////////////////////////////////////////////////////////
 	/////////////////////////// DISPLAY FUNCTIONS ////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
 	private Display2D display;
-    private JFrame displayFrame;
+	private JFrame displayFrame;
 
-    GeomVectorFieldPortrayal polyPortrayal = new GeomVectorFieldPortrayal(true);
-    private GeomVectorFieldPortrayal roadsPortrayal = new GeomVectorFieldPortrayal(true);
-    private GeomVectorFieldPortrayal flood3Portrayal = new GeomVectorFieldPortrayal();
-    private GeomVectorFieldPortrayal flood2Portrayal = new GeomVectorFieldPortrayal();
-    private GeomVectorFieldPortrayal agentPortrayal = new GeomVectorFieldPortrayal();
-    TimeSeriesChartGenerator trafficChart;
-    XYSeries maxSpeed;
-    XYSeries avgSpeed;
-    XYSeries minSpeed;
+	GeomVectorFieldPortrayal polyPortrayal = new GeomVectorFieldPortrayal(true);
+	private GeomVectorFieldPortrayal roadsPortrayal = new GeomVectorFieldPortrayal(true);
+	private GeomVectorFieldPortrayal flood3Portrayal = new GeomVectorFieldPortrayal();
+	private GeomVectorFieldPortrayal flood2Portrayal = new GeomVectorFieldPortrayal();
+	private GeomVectorFieldPortrayal agentPortrayal = new GeomVectorFieldPortrayal();
+	TimeSeriesChartGenerator trafficChart;
+	XYSeries maxSpeed;
+	XYSeries avgSpeed;
+	XYSeries minSpeed;
 
-    //////////////////////////////////////////////////////////////////////////////
-    /////////////////////////// BEGIN FUNCTIONS //////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	/////////////////////////// BEGIN FUNCTIONS //////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * ///////////////////////// Default constructor /////////////////////////////
-     * Default constructor
-     */
-    protected MK_7_1WithUI(SimState state)	{
-            super(state);
-        }
+	/**
+	 * ///////////////////////// Default constructor /////////////////////////////
+	 * Default constructor
+	 */
+	protected MK_7_1WithUI(SimState state) {
+		super(state);
+	}
 
-    /**
-     * //////////////////////// Portrayal Setup //////////////////////////////////
-     * Sets up the portrayals and charts for the simulation
-     */
-    private void setupPortrayals()	{
-    	sim.MK_7_1 world = (sim.MK_7_1) state;
+	/**
+	 * //////////////////////// Portrayal Setup //////////////////////////////////
+	 * Sets up the portrayals and charts for the simulation
+	 */
+	private void setupPortrayals() {
+		sim.MK_7_1 world = (sim.MK_7_1) state;
 
-        // the polygon portrayal
-        polyPortrayal.setField(world.baseLayer);
-        polyPortrayal.setPortrayalForAll(new PolyPortrayal());
+		// the polygon portrayal
+		polyPortrayal.setField(world.baseLayer);
+		polyPortrayal.setPortrayalForAll(new PolyPortrayal());
 
-        display.reset();
+		display.reset();
 
-        display.repaint();
-    }
+		display.repaint();
+	}
 
-        /**
-         * ///////////////////////// Main Function ///////////////////////////////
-         *
-         * Main function to run the simulation
-         * @param args
-         */
-        public static void main(String[] args)	{
-        	MK_7_1WithUI simple = new MK_7_1WithUI(
-        			new sim.MK_7_1(System.currentTimeMillis()));
-            Console c = new Console(simple);
-            c.setVisible(true);
-        }
+	/**
+	 * ///////////////////////// Main Function ///////////////////////////////
+	 *
+	 * Main function to run the simulation
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		MK_7_1WithUI simple = new MK_7_1WithUI(new sim.MK_7_1(System.currentTimeMillis()));
+		Console c = new Console(simple);
+		c.setVisible(true);
+	}
 
-        /**
-         * //////////////////////// Simulation Name //////////////////////////////
-         * @return name of the simulation
-         */
-        public static String getName()	{
-            return "EngD ABM Model MK_7_1";
-        }
+	/**
+	 * //////////////////////// Simulation Name //////////////////////////////
+	 * 
+	 * @return name of the simulation
+	 */
+	public static String getName() {
+		return "EngD ABM Model MK_7_1";
+	}
 
-        /**
-         *  /////////////////////// Model Modification ///////////////////////////
-         *  This must be included to have model tab, which allows mid-simulation
-         *  modification of the coefficients
-         */
-        public Object getSimulationInspectedObject()	{
-            return state;
-        }  // non-volatile
+	/**
+	 * /////////////////////// Model Modification /////////////////////////// This
+	 * must be included to have model tab, which allows mid-simulation modification
+	 * of the coefficients
+	 */
+	public Object getSimulationInspectedObject() {
+		return state;
+	} // non-volatile
 
-        /**
-         * //////////////////////// Model Setup //////////////////////////////////
-         * Called when starting a new run of the simulation. Sets up the portrayals
-         * and chart data.
-         */
-        public void start()	{
-            super.start();
+	/**
+	 * //////////////////////// Model Setup //////////////////////////////////
+	 * Called when starting a new run of the simulation. Sets up the portrayals and
+	 * chart data.
+	 */
+	public void start() {
+		super.start();
 
-            setupPortrayals();
+		setupPortrayals();
 
-            sim.MK_7_1 world = (sim.MK_7_1) state;
+		sim.MK_7_1 world = (sim.MK_7_1) state;
 
-            maxSpeed = new XYSeries("Max Speed");
-            avgSpeed = new XYSeries("Average Speed");
-            minSpeed = new XYSeries("Min Speed");
-            trafficChart.removeAllSeries();
-            trafficChart.addSeries(maxSpeed, null);
-            trafficChart.addSeries(avgSpeed, null);
-            trafficChart.addSeries(minSpeed, null);
+		maxSpeed = new XYSeries("Max Speed");
+		avgSpeed = new XYSeries("Average Speed");
+		minSpeed = new XYSeries("Min Speed");
+		trafficChart.removeAllSeries();
+		trafficChart.addSeries(maxSpeed, null);
+		trafficChart.addSeries(avgSpeed, null);
+		trafficChart.addSeries(minSpeed, null);
 
-            state.schedule.scheduleRepeating(new Steppable()	{
-				private static final long serialVersionUID = -3749005402522867098L;
+		state.schedule.scheduleRepeating(new Steppable() {
+			private static final long serialVersionUID = -3749005402522867098L;
 
-				public void step(SimState state)	{
-                	sim.MK_7_1 world = (sim.MK_7_1) state;
-                    double maxS = 0, minS = 10000, avgS = 0, count = 0;
-                    //////////////////////////// Main Agent //////////////////////
-                    for (Agent a : world.agentList)	{
-                        if (a.distributing)	{
-                            continue;
-                        }
-                        count++;
-                        double speed = Math.abs(a.speed);
-                        avgS += speed;
-                        if (speed > maxS)	{
-                            maxS = speed;
-                        }
-                        if (speed < minS)	{
-                            minS = speed;
-                        }
-                    }
+			public void step(SimState state) {
+				sim.MK_7_1 world = (sim.MK_7_1) state;
+				double maxS = 0, minS = 10000, avgS = 0, count = 0;
+				//////////////////////////// Main Agent //////////////////////
+				for (Agent a : world.agentList) {
+					if (a.distributing) {
+						continue;
+					}
+					count++;
+					double speed = Math.abs(a.speed);
+					avgS += speed;
+					if (speed > maxS) {
+						maxS = speed;
+					}
+					if (speed < minS) {
+						minS = speed;
+					}
+				}
 
-                    double time = state.schedule.time();
-                    avgS /= count;
-                    maxSpeed.add(time, maxS, true);
-                    minSpeed.add(time, minS, true);
-                    avgSpeed.add(time, avgS, true);
-                }
-            });
+				double time = state.schedule.time();
+				avgS /= count;
+				maxSpeed.add(time, maxS, true);
+				minSpeed.add(time, minS, true);
+				avgSpeed.add(time, avgS, true);
+			}
+		});
 
-        	/**
-        	 * Sets up the portrayals within the map visualization.
-        	 */
+		/**
+		 * Sets up the portrayals within the map visualization.
+		 */
 
-            roadsPortrayal.setField(world.roadLayer);
-            roadsPortrayal.setPortrayalForAll(new GeomPortrayal
-            		(Color.DARK_GRAY, 0.0005, false));
-            polyPortrayal.setField(world.baseLayer);
-            polyPortrayal.setPortrayalForAll(new PolyPortrayal());
-            flood3Portrayal.setField(world.flood3);
-            flood3Portrayal.setPortrayalForAll(new GeomPortrayal
-            		(Color.CYAN, true));
-            flood3Portrayal.setImmutableField(true);
-            flood2Portrayal.setField(world.flood2);
-            flood2Portrayal.setPortrayalForAll(new GeomPortrayal
-            		(Color.BLUE, true));
-            agentPortrayal.setField(world.agentsLayer);
-            agentPortrayal.setPortrayalForAll(new GeomPortrayal
-            		(Color.MAGENTA, 150, true));
-            //agentPortrayal.setPortrayalForAll(new GeomPortrayal());
+		roadsPortrayal.setField(world.roadLayer);
+		roadsPortrayal.setPortrayalForAll(new GeomPortrayal(Color.DARK_GRAY, 0.0005, false));
+		polyPortrayal.setField(world.baseLayer);
+		polyPortrayal.setPortrayalForAll(new PolyPortrayal());
+		flood3Portrayal.setField(world.flood3);
+		flood3Portrayal.setPortrayalForAll(new GeomPortrayal(Color.CYAN, true));
+		flood3Portrayal.setImmutableField(true);
+		flood2Portrayal.setField(world.flood2);
+		flood2Portrayal.setPortrayalForAll(new GeomPortrayal(Color.BLUE, true));
+		agentPortrayal.setField(world.agentsLayer);
+		agentPortrayal.setPortrayalForAll(new GeomPortrayal(Color.MAGENTA, 150, true));
+		// agentPortrayal.setPortrayalForAll(new GeomPortrayal());
 
-            display.reset();
-            display.setBackdrop(Color.WHITE);
-            display.repaint();
+		display.reset();
+		display.setBackdrop(Color.WHITE);
+		display.repaint();
 
-        }
+	}
 
-        /**
-         * /////////////////////// Poly Portrayal Colours ////////////////////////
-         * The portrayal used to display Polygons with the appropriate color
-         * */
-        class PolyPortrayal extends GeomPortrayal
-        {
+	/**
+	 * /////////////////////// Poly Portrayal Colours //////////////////////// The
+	 * portrayal used to display Polygons with the appropriate color
+	 */
+	class PolyPortrayal extends GeomPortrayal {
 
-            private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 1L;
 
-            @Override
-            public void draw(Object object, Graphics2D graphics, DrawInfo2D info)
-            {
-                Polygon poly = (Polygon) object;
+		@Override
+		public void draw(Object object, Graphics2D graphics, DrawInfo2D info) {
+			Polygon poly = (Polygon) object;
 
-                if (poly.getSoc().equals("Red"))
-                {
-                    paint = Color.red;
-                }
+			if (poly.getSoc().equals("Red")) {
+				paint = Color.red;
+			}
 
-                else if (poly.getSoc().equals("Orange"))
-                {
-                    paint = Color.orange;
-                }
+			else if (poly.getSoc().equals("Orange")) {
+				paint = Color.orange;
+			}
 
-                else if (poly.getSoc().equals("Yellow"))
-                {
-                    paint = Color.yellow;
-                }
+			else if (poly.getSoc().equals("Yellow")) {
+				paint = Color.yellow;
+			}
 
-                else if (poly.getSoc().equals("Green"))
-                {
-                    paint = Color.green;
-                }
-                else
-                {
-                    paint = Color.gray;
-                }
+			else if (poly.getSoc().equals("Green")) {
+				paint = Color.green;
+			} else {
+				paint = Color.gray;
+			}
 
-                super.draw(object, graphics, info);
-            }
+			super.draw(object, graphics, info);
+		}
 
-        }
+	}
 
-        /**
-         * /////////////////////// Visualisation Format //////////////////////////
-         * Initializes the simulation visualization. Sets up the display
-         * window, the JFrames, and the chart structure.
-         */
-        public void init(Controller c)
-        {
-            super.init(c);
+	/**
+	 * /////////////////////// Visualisation Format //////////////////////////
+	 * Initializes the simulation visualization. Sets up the display window, the
+	 * JFrames, and the chart structure.
+	 */
+	public void init(Controller c) {
+		super.init(c);
 
-            /////////////////////////// MAIN DISPLAY /////////////////////////////
-            // makes the displayer and visualises the maps
-            display = new Display2D(800, 600, this);
-            // turn off clipping
-            // display.setClipping(false);
+		/////////////////////////// MAIN DISPLAY /////////////////////////////
+		// makes the displayer and visualises the maps
+		display = new Display2D(800, 600, this);
+		// turn off clipping
+		// display.setClipping(false);
 
-            displayFrame = display.createFrame();
-            displayFrame.setTitle("EngD ABM Model MK_7_1");
-            c.registerFrame(displayFrame); // register the frame so it appears in
+		displayFrame = display.createFrame();
+		displayFrame.setTitle("EngD ABM Model MK_7_1");
+		c.registerFrame(displayFrame); // register the frame so it appears in
 
-            // Put portrayals in order from bottom layer to top
-            displayFrame.setVisible(true);
-            display.attach(polyPortrayal, "LSOA");
-            display.attach(flood2Portrayal, "FZ2 Zone");
-            display.attach(flood3Portrayal, "FZ3 Zone");
-            display.attach(roadsPortrayal, "Roads");
-            display.attach(agentPortrayal, "Agents");
+		// Put portrayals in order from bottom layer to top
+		displayFrame.setVisible(true);
+		display.attach(polyPortrayal, "LSOA");
+		display.attach(flood2Portrayal, "FZ2 Zone");
+		display.attach(flood3Portrayal, "FZ3 Zone");
+		display.attach(roadsPortrayal, "Roads");
+		display.attach(agentPortrayal, "Agents");
 
-            ///////////////////////////// CHART //////////////////////////////////
-            trafficChart = new TimeSeriesChartGenerator();
-            trafficChart.setTitle("Traffic Stats");
-            trafficChart.setYAxisLabel("Speed");
-            trafficChart.setXAxisLabel("Time");
-            JFrame chartFrame = trafficChart.createFrame(this);
-            chartFrame.pack();
-            c.registerFrame(chartFrame);
+		///////////////////////////// CHART //////////////////////////////////
+		trafficChart = new TimeSeriesChartGenerator();
+		trafficChart.setTitle("Traffic Stats");
+		trafficChart.setYAxisLabel("Speed");
+		trafficChart.setXAxisLabel("Time");
+		JFrame chartFrame = trafficChart.createFrame(this);
+		chartFrame.pack();
+		c.registerFrame(chartFrame);
 
-        }
+	}
 
-        /**
-         * /////////////////////// Model Finish //////////////////////////////////
-         * Quits the simulation and cleans up.
-         */
-        public void quit()	{
-        	System.out.println("Model closed.");
-        	super.quit();
+	/**
+	 * /////////////////////// Model Finish ////////////////////////////////// Quits
+	 * the simulation and cleans up.
+	 */
+	public void quit() {
+		System.out.println("Model closed.");
+		super.quit();
 
-            if (displayFrame != null)	{
-                displayFrame.dispose();
-            }
-            displayFrame = null; // let gc
-            display = null; // let gc
-        }
-    }
+		if (displayFrame != null) {
+			displayFrame.dispose();
+		}
+		displayFrame = null; // let gc
+		display = null; // let gc
+	}
+}
