@@ -16,7 +16,8 @@ import java.util.ArrayList;
  * $Id: Polygon.java 842 2012-12-18 01:09:18Z mcoletti $
  */
 public class Polygon extends MasonGeometry	{
-    String soc;
+	int id = -1;
+	String soc;
 
     ArrayList<Polygon> neighbors;
 
@@ -26,8 +27,16 @@ public class Polygon extends MasonGeometry	{
     }
 
     public void init()	{
+    	id = getDoubleAttribute("ID").intValue();
         soc = getStringAttribute("RankColN");
-        //soc = getIntegerAttribute("RankColN");
+    }
+    
+    int getID()	{
+        if (id == -1)
+        {
+            init();
+        }
+        return id;
     }
 
     String getSoc()	{
